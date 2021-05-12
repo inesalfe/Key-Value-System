@@ -1,10 +1,10 @@
 CC=gcc
 
+KVS-LocalServer: appList.o hash.o groupList.o KVS-LocalServer.c
+	$(CC) KVS-LocalServer.c -o KVS-LocalServer appList.o groupList.o hash.o
+
 app: KVS-lib.o app.c
 	$(CC) app.c -o app KVS-lib.o
-
-KVS-LocalServer: appList.o hash.o KVS-LocalServer.c
-	$(CC) KVS-LocalServer.c -o KVS-LocalServer appList.o
 
 KVS-lib.o: KVS-lib.c KVS-lib.h
 	$(CC) -c KVS-lib.c

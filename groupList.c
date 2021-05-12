@@ -33,18 +33,13 @@ bool ShowGroupInfo(struct Group * head, char * name)
     return false;
 }
 
-bool ShowAppStatus(struct Group * head, char * name)
+void ShowAppStatus(struct Group * group)
 {
-    struct Group * current = head;
-    while (current != NULL)
-    {
-        if (strcmp(current->group_name, name) == 0) {
-            print_AppList(current->apps);
-            return true;
-        }
-        current = current->next;
+    while (group != NULL)
+    {   
+        print_AppList(group->apps);
+        group = group->next;
     }
-    return false;
 }
 
 char * CreateGroup(struct Group ** head_ref, char * name)
@@ -73,22 +68,54 @@ char * CreateGroup(struct Group ** head_ref, char * name)
 
 }
 
-bool addApp_toGroup(struct Group * head, char * name, struct sockaddr_un cl_addr_in) {
+
+bool FindGroup(struct Group * head, char * name) {
+
+    struct Group * current = head;
+    while (current != NULL)
+    {
+        if (strcmp(current->group_name, name) == 0) {
+           return true;
+        }
+        current = current->next;
+    }
+    return false;
+
+}
+
+bool close_GroupApp(struct Group ** head_ref, char * name, int cl_fd) {
+
+    struct Group * current = *head_ref;
+    while (current != NULL)
+    {
+        if (strcmp(current->group_name, name) == 0) {
+            return close_App(current->apps, cl_fd);
+        }
+        current = current->next;
+    }
+    return false;
+
+}
+
+bool addApp_toGroup(struct Group * head, char * name, char * secret, int cl_fd, int pid_in) {
     
     struct Group * current = head;
     while (current != NULL)
     {
         if (strcmp(current->group_name, name) == 0) {
-            append_App(&current->apps, cl_addr_in);
-            return true;
+            if (strcmp(current->secret, secret) == 0) {
+                append_App(&current->apps, cl_fd, pid_in);
+                return true;                
+            }
+            else
+                return false;
         }
         current = current->next;
     }
     return false;
 }
 
-
-void deleteNode(struct Group ** head_ref, char * name)
+void deleteGroup(struct Group ** head_ref, char * name)
 {
     struct Group * temp = * head_ref, * prev;
  
@@ -110,7 +137,6 @@ void deleteNode(struct Group ** head_ref, char * name)
  
     free(temp);
 }
-
 
 
 

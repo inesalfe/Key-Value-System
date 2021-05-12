@@ -21,13 +21,13 @@ void print_AppList(struct App *app)
 	}
 }
 
-void append_App(struct App** head_ref, struct sockaddr_un cl_addr_in)
+void append_App(struct App** head_ref, int cl_fd, int pid_in)
 {
     struct App* new_node = (struct App*) malloc(sizeof(struct App));
     struct App *last = *head_ref;
-    new_node->cl_addr = cl_addr_in;
+    new_node->fd = cl_fd;
     clock_gettime(CLOCK_REALTIME, &new_node->start);
-	new_node->pid = atol(new_node->cl_addr.sun_path + strlen("/tmp/app_socket_"));
+	new_node->pid = pid_in;
     new_node->next = NULL;
     if (*head_ref == NULL)
     {
@@ -40,22 +40,12 @@ void append_App(struct App** head_ref, struct sockaddr_un cl_addr_in)
     return;
 }
 
-bool equals(struct sockaddr_un s1, struct sockaddr_un s2) {
-    if (strcmp(s1.sun_path, s2.sun_path) == 0)
-        if (s1.sun_family == s2.sun_family)
-            return true;
-        else
-            return false;
-    else
-        return false;
-}
-
-bool close_App(struct App* head, struct sockaddr_un cl_addr_in)
+bool close_App(struct App* head, int cl_fd)
 {
     struct App* current = head;
     while (current != NULL)
     {
-        if (equals(current->cl_addr, cl_addr_in) == true) {
+        if (current->fd == cl_fd) {
     		clock_gettime(CLOCK_REALTIME, &current->stop);
         	return true;
         }

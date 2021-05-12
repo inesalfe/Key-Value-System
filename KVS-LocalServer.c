@@ -7,8 +7,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "hash.h"
-#include "appList.h"
+#include <stdbool.h>
+// #include "hash.h"
+// #include "appList.h"
+#include "groupList.h"
 
 #define SV_SOCK_PATH "/tmp/server_sock"
 #define BUF_SIZE 100
@@ -16,12 +18,12 @@
 
 struct Group * groups;
 
-// char group_id[3] = "g1";
-// char secret[4] = "123";
-// char key[BUF_SIZE];
-// char value[BUF_SIZE];
-// char key2[BUF_SIZE];
-// char value2[BUF_SIZE];
+char group_id[3] = "g1";
+char secret[4] = "123";
+char key[BUF_SIZE];
+char value[BUF_SIZE];
+char key2[BUF_SIZE];
+char value2[BUF_SIZE];
 
 int put_value (int * app_fd) {
 
@@ -106,9 +108,6 @@ int delete_value (int * app_fd) {
 int register_callback (int * app_fd) {
 }
 
-int close_connection (int * app_fd) {
-}
-
 void * thread_func(void * arg) {
 
     // Group_id received by the app
@@ -120,6 +119,7 @@ void * thread_func(void * arg) {
     int cfd = *(int *)arg;
     ssize_t numBytes;
     int error_flag = 1;
+    bool flag;
 
     // Sending flag saying that connection was established
     if (write(cfd, &error_flag, sizeof(int)) != sizeof(int)) {
@@ -146,7 +146,8 @@ void * thread_func(void * arg) {
     }
 
     // Check if group_id is correct
-    if (strcmp(group_id_app, group_id) == 0)
+    flag = FindGroup(groups, group_id_app);
+    if (flag == true)
         error_flag = 1;
     else
         error_flag = 0;
@@ -168,8 +169,12 @@ void * thread_func(void * arg) {
     // Reusing the error flag to check the secret
     error_flag = -1;
 
+    struct sockaddr_un cl_addr;
+    socklen_t len;
+    len = sizeof(struct sockaddr_un);
+
     // Reading secret
-    numBytes = read(cfd, secret_app, BUF_SIZE);
+    numBytes = recvfrom(cfd, secret_app, sizeof(BUF_SIZE), 0, (struct sockaddr *) &cl_addr, &len);
 
     // Errot in reading secret
     if (numBytes == -1) {
@@ -180,8 +185,11 @@ void * thread_func(void * arg) {
         pthread_exit(NULL);        
     }
 
+    int pid = atol(cl_addr.sun_path + strlen("/tmp/app_socket_"));
+    
     // Check if secret is correct
-    if (strcmp(secret_app, secret) == 0)
+    flag = addApp_toGroup(groups, group_id_app, secret_app, cfd, pid);
+    if (flag == true)
         error_flag = 1;
     else
         error_flag = 0;
@@ -227,7 +235,7 @@ void * thread_func(void * arg) {
         else if (func_code == 3)
             register_callback(&cfd);
         else
-            close_connection(&cfd);
+            close_GroupApp(&groups, group_id_app, cfd);
     }
 
     printf("Server: Error in reading function name\n");
@@ -266,14 +274,48 @@ int main(int argc, char *argv[]) {
     struct sockaddr_un app_addr;
     socklen_t len = sizeof(struct sockaddr_un);
 
-    for (;;) {
+    groups = NULL;
 
-        // Accept app connection
-        int cfd = accept(sfd, (struct sockaddr *) &app_addr, &len);
-        if (cfd == -1)
-            printf("Server: Error in acception\n");
-        pthread_t t_id;
-        pthread_create(&t_id, NULL, thread_func, &cfd);
+    int pid = fork();
+
+    if (pid == 0) {
+        for (;;) {
+            int cfd = accept(sfd, (struct sockaddr *) &app_addr, &len);
+            if (cfd == -1)
+                printf("Server: Error in acception\n");
+            pthread_t t_id;
+            pthread_create(&t_id, NULL, thread_func, &cfd);
+        }
+        exit(0);
+    }
+    else {
+        char str[BUF_SIZE];
+        char g_name[BUF_SIZE];
+        bool flag;
+        while (1) {
+            fgets(str, sizeof(str), stdin);
+            if (strcmp(str, "Create group\n") == 0) {
+                printf("Here!\n");
+                fgets(g_name, sizeof(g_name), stdin);
+                CreateGroup(&groups, g_name);
+                printf("Group created!\n");
+            }
+            else if (strcmp(str, "Delete group\n") == 0) {
+                fgets(g_name, sizeof(g_name), stdin);
+                deleteGroup(&groups, g_name);
+                printf("Group deleted!\n");
+            }
+            else if (strcmp(str, "Show group info\n") == 0) {
+                fgets(g_name, sizeof(g_name), stdin);
+                flag = ShowGroupInfo(groups, g_name);
+                if (flag == false)
+                    printf("Group not found!\n");
+            }
+            else if (strcmp(str, "Show application status\n") == 0) {
+                ShowAppStatus(groups);
+            }
+        }
+        wait(NULL);
     }
 
     remove(sv_addr.sun_path);

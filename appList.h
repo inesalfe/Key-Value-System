@@ -5,7 +5,7 @@
 
 struct App {
     long pid;
-    struct sockaddr_un cl_addr;
+    int fd;
     struct timespec start;
     struct timespec stop;
     struct App *next;
@@ -13,6 +13,6 @@ struct App {
 
 void print_AppList(struct App * app);
 
-void append_App(struct App ** head_ref, struct sockaddr_un cl_addr_in);
+void append_App(struct App ** head_ref, int cl_fd, int pid_in);
 
-bool close_App(struct App * head, struct sockaddr_un cl_addr_in);
+bool close_App(struct App * head, int cl_fd);
