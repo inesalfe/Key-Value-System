@@ -68,12 +68,14 @@ char * CreateGroup(struct Group ** head_ref, char * name)
 
 }
 
-
 bool FindGroup(struct Group * head, char * name) {
 
+    printf("Function\n");
     struct Group * current = head;
     while (current != NULL)
     {
+        printf("current->group_name: %s\n", current->group_name);
+        printf("name: %s\n", name);
         if (strcmp(current->group_name, name) == 0) {
            return true;
         }

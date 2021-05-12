@@ -18,7 +18,7 @@
 
 struct Group * groups;
 
-char group_id[3] = "g1";
+char group_id[5] = "g1\n";
 char secret[4] = "123";
 char key[BUF_SIZE];
 char value[BUF_SIZE];
@@ -144,6 +144,8 @@ void * thread_func(void * arg) {
         }
         pthread_exit(NULL);        
     }
+
+    printf("Olá!\n");
 
     // Check if group_id is correct
     flag = FindGroup(groups, group_id_app);
