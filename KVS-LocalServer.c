@@ -7,25 +7,21 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include "hash.h"
+#include "appList.h"
 
 #define SV_SOCK_PATH "/tmp/server_sock"
 #define BUF_SIZE 100
 #define BACKLOG 5
 
-// Ainda não usei isto
-struct app {
-    
-    int socketFD;
-    struct sockaddr_un app_addr;
+struct Group * groups;
 
-};
-
-char group_id[3] = "g1";
-char secret[4] = "123";
-char key[BUF_SIZE];
-char value[BUF_SIZE];
-char key2[BUF_SIZE];
-char value2[BUF_SIZE];
+// char group_id[3] = "g1";
+// char secret[4] = "123";
+// char key[BUF_SIZE];
+// char value[BUF_SIZE];
+// char key2[BUF_SIZE];
+// char value2[BUF_SIZE];
 
 int put_value (int * app_fd) {
 
