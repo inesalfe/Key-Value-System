@@ -145,14 +145,14 @@ void * thread_func(void * arg) {
         pthread_exit(NULL);        
     }
 
-    printf("Olá!\n");
-
     // Check if group_id is correct
     flag = FindGroup(groups, group_id_app);
     if (flag == true)
         error_flag = 1;
     else
         error_flag = 0;
+
+    printf("ef: %d\n", error_flag);
 
     // Sending flag saying if group_id is correct or not
     if (write(cfd, &error_flag, sizeof(int)) != sizeof(int)) {
@@ -245,7 +245,37 @@ void * thread_func(void * arg) {
         printf("Server: Error in closing socket file descriptor\n");
     }
     pthread_exit(NULL);
+}
 
+void * get_cmd_func(void * arg) {
+
+    char str[BUF_SIZE];
+    char g_name[BUF_SIZE];
+    bool flag;
+    while (1) {
+        fgets(str, sizeof(str), stdin);
+        if (strcmp(str, "Create group\n") == 0) {
+            printf("Here!\n");
+            fgets(g_name, sizeof(g_name), stdin);
+            CreateGroup(&groups, g_name);
+            printf("Group created!\n");
+        }
+        else if (strcmp(str, "Delete group\n") == 0) {
+            fgets(g_name, sizeof(g_name), stdin);
+            deleteGroup(&groups, g_name);
+            printf("Group deleted!\n");
+        }
+        else if (strcmp(str, "Show group info\n") == 0) {
+            fgets(g_name, sizeof(g_name), stdin);
+            flag = ShowGroupInfo(groups, g_name);
+            if (flag == false)
+                printf("Group not found!\n");
+        }
+        else if (strcmp(str, "Show application status\n") == 0) {
+            ShowAppStatus(groups);
+        }
+    }
+    pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[]) {
@@ -278,46 +308,15 @@ int main(int argc, char *argv[]) {
 
     groups = NULL;
 
-    int pid = fork();
+    pthread_t t_id_cmd;
+    pthread_create(&t_id_cmd, NULL, get_cmd_func, NULL);
 
-    if (pid == 0) {
-        for (;;) {
-            int cfd = accept(sfd, (struct sockaddr *) &app_addr, &len);
-            if (cfd == -1)
-                printf("Server: Error in acception\n");
-            pthread_t t_id;
-            pthread_create(&t_id, NULL, thread_func, &cfd);
-        }
-        exit(0);
-    }
-    else {
-        char str[BUF_SIZE];
-        char g_name[BUF_SIZE];
-        bool flag;
-        while (1) {
-            fgets(str, sizeof(str), stdin);
-            if (strcmp(str, "Create group\n") == 0) {
-                printf("Here!\n");
-                fgets(g_name, sizeof(g_name), stdin);
-                CreateGroup(&groups, g_name);
-                printf("Group created!\n");
-            }
-            else if (strcmp(str, "Delete group\n") == 0) {
-                fgets(g_name, sizeof(g_name), stdin);
-                deleteGroup(&groups, g_name);
-                printf("Group deleted!\n");
-            }
-            else if (strcmp(str, "Show group info\n") == 0) {
-                fgets(g_name, sizeof(g_name), stdin);
-                flag = ShowGroupInfo(groups, g_name);
-                if (flag == false)
-                    printf("Group not found!\n");
-            }
-            else if (strcmp(str, "Show application status\n") == 0) {
-                ShowAppStatus(groups);
-            }
-        }
-        wait(NULL);
+    for (;;) {
+        int cfd = accept(sfd, (struct sockaddr *) &app_addr, &len);
+        if (cfd == -1)
+            printf("Server: Error in acception\n");
+        pthread_t t_id;
+        pthread_create(&t_id, NULL, thread_func, &cfd);
     }
 
     remove(sv_addr.sun_path);

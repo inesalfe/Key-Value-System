@@ -70,7 +70,6 @@ char * CreateGroup(struct Group ** head_ref, char * name)
 
 bool FindGroup(struct Group * head, char * name) {
 
-    printf("Function\n");
     struct Group * current = head;
     while (current != NULL)
     {

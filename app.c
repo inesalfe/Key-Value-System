@@ -7,7 +7,7 @@
 
 int main(int argc, char *argv[]) {
 
-    char group_id[3] = "g1\n";
+    char group_id[5] = "g1\n";
     char secret[4] = "123";
     char key1[4] = "abc";
     char key2[4] = "def";
