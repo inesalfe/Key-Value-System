@@ -1,0 +1,23 @@
+KVS-lib.c
+
+- Mudar valores dos erros no caso do erro ser igual.
+- O file descriptor está definido como variável global mas fazia mais sentido estar no mais de teste no que no .c.
+- Testar o "establish_connection" para os vários tipos de erro.
+- Testar o "put_value" para os vários tipos de erro.
+- No "get_value" como é que se sabe se a operação foi um sucesso? So se se receber primeiro o comprimento da string que é supsto receber.
+- Testar o "delete_value" para os vários tipos de erro.
+- O "register_callback" está escrito mas foi feito à padeiro e não foi testado. O mais provável é não funcionar.
+- Mudar o "close_connection" para chamar as funções da appList e do groupList porque estas conseguem parar o tempo de conexão.
+
+groupList.c
+
+- Depois de acabar a primeira layer, o segreto tem de sair da estrutura grupo e tem der para a hashtable / lista ligada que está no servidor de autentificação.
+- Há function que recebem Group ** em vez de Group ª. Eu não sei se é preciso mas como nunca lidei muito com listas ligadas foi o que vi na net.
+
+appList.c
+
+- O mesmo do que no groupList em relação a App ** e App *.
+
+KVS-LocalServer.c
+
+- Qual é a condição para a qual o programa acaba? Eliminar todos os grupos? Fechar a conexão de todas as app's? u basta um comando a ser recebido do teclado, algo como "quit"?

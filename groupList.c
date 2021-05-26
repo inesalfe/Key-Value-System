@@ -4,6 +4,7 @@
 #include "appList.h"
 #include "groupList.h"
 
+// Maximum number of key-value pairs in each table
 #define SIZE_IN 1000
 
 void ShowAllGroupsInfo(struct Group * group)

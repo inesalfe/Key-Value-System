@@ -66,8 +66,6 @@ int establish_connection (char * group_id, char * secret) {
         return -5;
     }
 
-    // printf("Connection established\n");
-
     // Sending the group_id to the server
 	if (write(cfd, group_id, sizeof(group_id)) != sizeof(group_id)) {
         if (close(cfd) == -1) {
@@ -78,16 +76,12 @@ int establish_connection (char * group_id, char * secret) {
         return -7;
 	}
 
-    // printf("Group_id sent\n");
-
     // Reading flag saying if the group_id is correct
 	numBytes = read(cfd, &check_group, sizeof(int));
     if (numBytes == -1) {
         printf("App: Error in reading response of the server for the sent group_id\n");
         return -8;
     }
-
-    // printf("Group_id flag received\n");
 
     // Wrong group
     if (check_group != 1) {
@@ -109,8 +103,6 @@ int establish_connection (char * group_id, char * secret) {
         return -12;
     }
 
-    // printf("Secret sent\n");
-
     // Reading flag for the secret
     numBytes = read(cfd, &check_secret, sizeof(int));
     if (numBytes == -1) {
@@ -125,8 +117,6 @@ int establish_connection (char * group_id, char * secret) {
         printf("App: Incorrect secret\n");
         return -15;
     }
-
-    // printf("Secret flag receive\n");
 
     if (check_secret == 1)
         return 0;

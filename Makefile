@@ -1,5 +1,7 @@
 CC=gcc
 
+all: KVS-LocalServer app
+
 KVS-LocalServer: appList.o hash.o groupList.o KVS-LocalServer.c
 	$(CC) KVS-LocalServer.c -o KVS-LocalServer appList.o groupList.o hash.o
 
