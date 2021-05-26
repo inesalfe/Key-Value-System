@@ -10,8 +10,9 @@ KVS-lib.c
 
 groupList.c
 
-- Depois de acabar a primeira layer, o segreto tem de sair da estrutura grupo e tem der para a hashtable / lista ligada que está no servidor de autentificação.
+- Depois de acabar a primeira layer, o segredo tem de sair da estrutura grupo e tem der para a hashtable / lista ligada que está no servidor de autentificação.
 - Há function que recebem Group ** em vez de Group ª. Eu não sei se é preciso mas como nunca lidei muito com listas ligadas foi o que vi na net.
+- Como é que devo gerar o segredo?
 
 appList.c
 
@@ -21,3 +22,7 @@ KVS-LocalServer.c
 
 - Qual é a condição para a qual o programa acaba? Eliminar todos os grupos? Fechar a conexão de todas as app's? u basta um comando a ser recebido do teclado, algo como "quit"?
 - Register callback
+
+TODO O LADO
+
+Testar isto tudo com o valgrind. De certeza que há free's a menos.

@@ -435,9 +435,14 @@ int close_connection() {
         return -2;
     }
 
+    if (close(cfd) == -1) {
+        printf("App: Error in closing socket\n");
+        return -3;
+    }
+
     if (operation_success == 1)
         return 1;
 
     printf("App: Other error\n");
-    return 3;
+    return -4;
 }

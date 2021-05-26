@@ -64,9 +64,10 @@ int get_value (char * group_name, int * app_fd) {
 		printf("Server: Error in reading key\n");
 		return -1;
 	}
-	strcpy(temp_value, getKeyValue(groups, group_name, temp_key));
-	if (temp_value != NULL)
+	if (getKeyValue(groups, group_name, temp_key) != NULL) {
+		strcpy(temp_value, getKeyValue(groups, group_name, temp_key));
 		length = strlen(temp_value);
+	}
 	if (write(*app_fd, &length, sizeof(length)) != sizeof(length)) {
 		printf("Server: Error in sending length\n");
 		return -1;

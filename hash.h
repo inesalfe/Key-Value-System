@@ -31,6 +31,7 @@ static void free_overflow_buckets(HashTable* table);
 Ht_item* create_item(char* key, char* value);
 HashTable* create_table(int size);
 void free_item(Ht_item* item);
+void free_table(HashTable* table);
 void handle_collision(HashTable* table, unsigned long index, Ht_item* item);
 void ht_insert(HashTable* table, char* key, char* value);
 char* ht_search(HashTable* table, char* key);

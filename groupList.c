@@ -38,6 +38,7 @@ void ShowAppStatus(struct Group * group)
 {
     while (group != NULL)
     {   
+        printf("%s:\n", group->group_name);
         print_AppList(group->apps);
         group = group->next;
     }
@@ -206,6 +207,22 @@ void deleteGroup(struct Group ** head_ref, char * name)
     prev->next = temp->next;
  
     free(temp);
+}
+
+void deleteGroupList(struct Group** head_ref) {
+   struct Group* current = *head_ref;
+   struct Group* next;
+ 
+   while (current != NULL)
+   {
+       next = current->next;
+       deleteAppList(&current->apps);
+       free_table(current->table);
+       free(current);
+       current = next;
+   }
+   
+   *head_ref = NULL;
 }
 
 

@@ -1,6 +1,6 @@
 CC=gcc
 
-all: KVS-LocalServer app
+all: KVS-LocalServer app main_group main_app #main_hash
 
 KVS-LocalServer: appList.o hash.o groupList.o KVS-LocalServer.c
 	$(CC) KVS-LocalServer.c -o KVS-LocalServer appList.o groupList.o hash.o
@@ -11,8 +11,8 @@ app: KVS-lib.o app.c
 KVS-lib.o: KVS-lib.c KVS-lib.h
 	$(CC) -c KVS-lib.c
 
-main_hash: hash.o main_hash.c
-	$(CC) main_hash.c -o main_hash hash.o
+# main_hash: hash.o main_hash.c
+# 	$(CC) main_hash.c -o main_hash hash.o
 
 hash.o: hash.c hash.h
 	$(CC) -c hash.c

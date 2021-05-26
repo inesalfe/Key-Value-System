@@ -67,7 +67,20 @@ bool close_App(struct App* head, int cl_fd)
     return false;
 }
 
+void deleteAppList(struct App** head_ref) {
 
+    struct App* current = *head_ref;
+    struct App* next;
+
+    while (current != NULL)
+    {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+
+    *head_ref = NULL;
+}
 
 
 

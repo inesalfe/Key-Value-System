@@ -28,3 +28,5 @@ void append_App(struct App ** head_ref, int cl_fd, int pid_in);
 // Closes the file descriptor of an app and stops the connection time
 // This funciton is called by the "close_GroupApp" function, called when the function "close_connection" of the app is called
 bool close_App(struct App * head, int cl_fd);
+
+void deleteAppList(struct App** head_ref);

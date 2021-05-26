@@ -70,3 +70,5 @@ bool addApp_toGroup(struct Group * head, char * name, char * secret, int cl_fd, 
 // It returns true in case of success and false otherwise
 // This function is called when the function "put_value" of the app is called
 bool addKeyValue_toGroup(struct Group * head, char * name, int cl_fd, char * key, char * value);
+
+void deleteGroupList(struct Group** head_ref);
