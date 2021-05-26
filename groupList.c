@@ -69,13 +69,81 @@ char * CreateGroup(struct Group ** head_ref, char * name)
 
 }
 
+char * getKeyValue(struct Group * head, char * name, char * key) {
+
+    struct Group * current = head;
+    while (current != NULL)
+    {
+        if (strcmp(current->group_name, name) == 0) {
+            return ht_search(current->table, key);
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+bool findKeyValue(struct Group * head, char * name, char * key) {
+
+    struct Group * current = head;
+    while (current != NULL)
+    {
+        if (strcmp(current->group_name, name) == 0) {
+            if (ht_search(current->table, key) != NULL)
+                return true;
+            else
+                return false;
+        }
+        current = current->next;
+    }
+
+    return false;
+
+}
+
+void deleteKeyValue(struct Group * head, char * name, char * key) {
+
+    struct Group * current = head;
+    while (current != NULL)
+    {
+        if (strcmp(current->group_name, name) == 0) {
+            ht_delete(current->table, key);
+            return;
+        }
+        current = current->next;
+    }
+
+    return;
+}
+
+
+bool addKeyValue_toGroup(struct Group * head, char * name, int cl_fd, char * key, char * value) {
+
+    struct Group * current = head;
+    while (current != NULL)
+    {
+        if (strcmp(current->group_name, name) == 0) {
+            if (FindApp(current->apps, cl_fd)) {
+                ht_insert(current->table, key, value);
+                return true;
+            }
+            else {
+                printf("App doesn't belong to this group\n");
+                return false;
+            }
+        }
+        current = current->next;
+    }
+    return false;
+
+}
+
 bool FindGroup(struct Group * head, char * name) {
 
     struct Group * current = head;
     while (current != NULL)
     {
-        printf("current->group_name: %s\n", current->group_name);
-        printf("name: %s\n", name);
+        // printf("current->group_name: %s\n", current->group_name);
+        // printf("name: %s\n", name);
         if (strcmp(current->group_name, name) == 0) {
            return true;
         }

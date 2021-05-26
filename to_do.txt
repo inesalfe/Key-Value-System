@@ -7,7 +7,6 @@ KVS-lib.c
 - No "get_value" como é que se sabe se a operação foi um sucesso? So se se receber primeiro o comprimento da string que é supsto receber.
 - Testar o "delete_value" para os vários tipos de erro.
 - O "register_callback" está escrito mas foi feito à padeiro e não foi testado. O mais provável é não funcionar.
-- Mudar o "close_connection" para chamar as funções da appList e do groupList porque estas conseguem parar o tempo de conexão.
 
 groupList.c
 
@@ -21,3 +20,4 @@ appList.c
 KVS-LocalServer.c
 
 - Qual é a condição para a qual o programa acaba? Eliminar todos os grupos? Fechar a conexão de todas as app's? u basta um comando a ser recebido do teclado, algo como "quit"?
+- Register callback

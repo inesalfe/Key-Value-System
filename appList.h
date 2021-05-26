@@ -14,7 +14,12 @@ struct App {
 
 // Prints all the information about all apps
 // This function is called by the "ShowAppStatus" function, called by the "Show application status" command
-void print_AppList(struct App * app);
+void print_AppList(struct App * head);
+
+// Function that return whether a app with a certain file descriptor is in the list
+// This is used in the function "addKeyValue_toGroup", called by the function "put_value"
+// Returns false if the app was not found, true otherwise
+bool FindApp(struct App * head, int cl_fd);
 
 // Appends a new app to the end of the app List
 // This funciton is called by the "addApp_toGroup" function, called when an app is trying to connect to a group

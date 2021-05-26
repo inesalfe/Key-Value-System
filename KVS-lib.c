@@ -421,15 +421,23 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 // Isto tem de ser mudado mas para isso é preciso fazer uma lista ligada de app's no servidor
 int close_connection() {
 
+    int operation_success = -1;
+    ssize_t numBytes;
+
     if (cfd == -1) {
         printf("App: Socket is not created\n");
         return -1;
     }
 
-    if (close(cfd) == -1) {
-    	printf("App: Error in closing socket\n");
-    	return -2;
+    numBytes = read(cfd, &operation_success, sizeof(&operation_success));
+    if (numBytes == -1) {
+        printf("App: Error in reading value\n");
+        return -2;
     }
 
-    return 1;
+    if (operation_success == 1)
+        return 1;
+
+    printf("App: Other error\n");
+    return 3;
 }

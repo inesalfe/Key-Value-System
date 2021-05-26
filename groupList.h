@@ -15,6 +15,20 @@ struct Group {
 // There are three function that receive a Group ** and I don't know why
 // Maybe try to tchnage this to Group *
 
+// Given the name of the group and a key, it returns the corresponding value or NULL if the key / group does not exist
+// This function is called when the function "get_value" of the app is called
+char * getKeyValue(struct Group * head, char * name, char * key);
+
+// Given the name of the group and a key, this function checks if a certain key is present in the table of the group
+// It return true is the key is found and false otherwise
+// This function is called when the function "delete_value" of the app is called
+bool findKeyValue(struct Group * head, char * name, char * key);
+
+// Given the name of the group and a key, this function deletes the entry in the Hashtable corresponding to a certain key
+// It return true is the key is correctly deleted and false otherwise
+// This function is called when the function "delete_value" of the app is called
+void deleteKeyValue(struct Group * head, char * name, char * key);
+
 // Function that prints information about all groups
 // This is still not used
 void ShowAllGroupsInfo(struct Group * group);

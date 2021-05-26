@@ -40,6 +40,19 @@ void append_App(struct App** head_ref, int cl_fd, int pid_in)
     return;
 }
 
+bool FindApp(struct App * head, int cl_fd) {
+
+    struct App* current = head;
+    while (current != NULL)
+    {
+        if (current->fd == cl_fd) {
+            return true;
+        }
+        current = current->next;
+    }
+    return false;    
+}
+
 bool close_App(struct App* head, int cl_fd)
 {
     struct App* current = head;

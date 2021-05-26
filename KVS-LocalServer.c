@@ -42,11 +42,16 @@ int put_value (char * group_name, int * app_fd) {
 		printf("Server: Error in reading value\n");
 		return -1;
 	}
-	return 1;
+	if (addKeyValue_toGroup(groups, group_name, *app_fd, temp_key, temp_value))
+		return 1;
+	else
+		return 0;
 }
 
-int get_value (int * app_fd) {
+int get_value (char * group_name, int * app_fd) {
 
+	char temp_key[BUF_SIZE];
+	char temp_value[BUF_SIZE];
 	int ready = 1;
 	int length = -1;
 	ssize_t numBytes;
@@ -54,28 +59,31 @@ int get_value (int * app_fd) {
 		printf("Server: Error in sending ready flag\n");
 		return -1;
 	}
-	numBytes = read(*app_fd, key2, sizeof(key2));
+	numBytes = read(*app_fd, temp_key, sizeof(temp_key));
 	if (numBytes == -1) {
 		printf("Server: Error in reading key\n");
 		return -1;
 	}
-	if (strcmp(key2, key) == 0)
-		length = strlen(value);
+	strcpy(temp_value, getKeyValue(groups, group_name, temp_key));
+	if (temp_value != NULL)
+		length = strlen(temp_value);
 	if (write(*app_fd, &length, sizeof(length)) != sizeof(length)) {
 		printf("Server: Error in sending length\n");
 		return -1;
 	}
 	if (length == -1)
 		return -1;
-	if (write(*app_fd, &value, sizeof(&value)) != sizeof(&value)) {
+	if (write(*app_fd, &temp_value, sizeof(&temp_value)) != sizeof(&temp_value)) {
 		printf("Server: Error in sending value pointer\n");
 		return -1;
 	}
 	return 1;
 }
 
-int delete_value (int * app_fd) {
+int delete_value (char * group_name, int * app_fd) {
 
+	char temp_key[BUF_SIZE];
+	char temp_value[BUF_SIZE];
 	int ready = 1;
 	int check_key = -1;
 	ssize_t numBytes;
@@ -83,12 +91,12 @@ int delete_value (int * app_fd) {
 		printf("Server: Error in sending ready flag\n");
 		return -1;
 	}
-	numBytes = read(*app_fd, key2, sizeof(key2));
+	numBytes = read(*app_fd, temp_key, sizeof(temp_key));
 	if (numBytes == -1) {
 		printf("Server: Error in reading key\n");
 		return -1;
 	}
-	if (strcmp(key2, key) == 0)
+	if (findKeyValue(groups, group_name, temp_key))
 		check_key = 1;
 	if (write(*app_fd, &check_key, sizeof(check_key)) != sizeof(check_key)) {
 		printf("Server: Error in sending check_key\n");
@@ -96,7 +104,7 @@ int delete_value (int * app_fd) {
 	}
 	if (check_key == -1)
 		return -1;
-	memset(value,0,strlen(value));
+	deleteKeyValue(groups, group_name, temp_key);
 	return 1;
 }
 
@@ -213,13 +221,13 @@ void * thread_func(void * arg) {
 			}
 		}
 		else if (func_code == 1) {
-			sucess_flag = get_value(&cfd);
+			sucess_flag = get_value(group_id_app, &cfd);
 			if (write(cfd, &sucess_flag, sizeof(sucess_flag)) != sizeof(sucess_flag)) {
 				printf("Server: Error in sending sucess flag\n");
 			}
 		}
 		else if (func_code == 2) {
-			sucess_flag = delete_value(&cfd);
+			sucess_flag = delete_value(group_id_app, &cfd);
 			if (write(cfd, &sucess_flag, sizeof(sucess_flag)) != sizeof(sucess_flag)) {
 				printf("Server: Error in sending sucess flag\n");
 			}
@@ -227,7 +235,11 @@ void * thread_func(void * arg) {
 		else if (func_code == 3)
 			register_callback(&cfd);
 		else {
-			close_GroupApp(&groups, group_id_app, cfd);
+			if (close_GroupApp(&groups, group_id_app, cfd))
+				sucess_flag = 1;
+			if (write(cfd, &sucess_flag, sizeof(sucess_flag)) != sizeof(sucess_flag)) {
+				printf("Server: Error in sending sucess flag\n");
+			}
 			break;
 		}
 	}
