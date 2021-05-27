@@ -1,17 +1,16 @@
 KVS-lib.c
 
-- Mudar valores dos erros no caso do erro ser igual.
 - O file descriptor está definido como variável global mas fazia mais sentido estar no mais de teste no que no .c.
 - Testar o "establish_connection" para os vários tipos de erro.
 - Testar o "put_value" para os vários tipos de erro.
 - No "get_value" como é que se sabe se a operação foi um sucesso? So se se receber primeiro o comprimento da string que é supsto receber.
 - Testar o "delete_value" para os vários tipos de erro.
-- O "register_callback" está escrito mas foi feito à padeiro e não foi testado. O mais provável é não funcionar.
+- Fazer o "register_callback" mais para o fim.
 
 groupList.c
 
 - Depois de acabar a primeira layer, o segredo tem de sair da estrutura grupo e tem der para a hashtable / lista ligada que está no servidor de autentificação.
-- Há function que recebem Group ** em vez de Group ª. Eu não sei se é preciso mas como nunca lidei muito com listas ligadas foi o que vi na net.
+- Há function que recebem Group ** em vez de Group *. Eu não sei se é preciso mas como nunca lidei muito com listas ligadas foi o que vi na net.
 - Como é que devo gerar o segredo?
 
 appList.c
@@ -20,10 +19,14 @@ appList.c
 
 KVS-LocalServer.c
 
-- Qual é a condição para a qual o programa acaba? Eliminar todos os grupos? Fechar a conexão de todas as app's? u basta um comando a ser recebido do teclado, algo como "quit"?
 - Register callback
-- \n no Create group
+- O get values da app1 às vezes fica preso no recv function code. 
+- Quando o utilizador coloca 'q', a thread que lê os comandos do teclado acaba mas as outras continuam. Como é q forço o programa a acabar quando aquela thread acaba?
 
 TODO O LADO
 
 Testar isto tudo com o valgrind. De certeza que há free's a menos.
+
+COISAS A DECIDIR
+
+Uma aplicação pode-se ligar a dois grupos?

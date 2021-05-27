@@ -52,7 +52,7 @@ void ShowAppStatus(struct Group * head);
 char * CreateGroup(struct Group ** head_ref, char * name);
 
 // Function to be called when the user uses the "Delete Group" command
-void deleteGroup(struct Group ** head_ref, char * name);
+bool deleteGroup(struct Group ** head_ref, char * name);
 
 // Given the name of the group and the file descriptor of the app
 // This function closes the corresponding app of the corresponding group
@@ -71,4 +71,4 @@ bool addApp_toGroup(struct Group * head, char * name, char * secret, int cl_fd, 
 // This function is called when the function "put_value" of the app is called
 bool addKeyValue_toGroup(struct Group * head, char * name, int cl_fd, char * key, char * value);
 
-void deleteGroupList(struct Group** head_ref);
+void deleteGroupList(struct Group**  head_ref);

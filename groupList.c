@@ -44,8 +44,12 @@ void ShowAppStatus(struct Group * group)
     }
 }
 
-char * CreateGroup(struct Group ** head_ref, char * name)
-{
+char * CreateGroup(struct Group ** head_ref, char * name) {
+
+    if(FindGroup(*head_ref, name)) {
+        return NULL;
+    }
+
     struct Group * new_node = (struct Group *) malloc(sizeof(struct Group));
     struct Group * last = * head_ref;
 
@@ -143,8 +147,6 @@ bool FindGroup(struct Group * head, char * name) {
     struct Group * current = head;
     while (current != NULL)
     {
-        // printf("current->group_name: %s\n", current->group_name);
-        // printf("name: %s\n", name);
         if (strcmp(current->group_name, name) == 0) {
            return true;
         }
@@ -156,7 +158,7 @@ bool FindGroup(struct Group * head, char * name) {
 
 bool close_GroupApp(struct Group ** head_ref, char * name, int cl_fd) {
 
-    struct Group * current = *head_ref;
+    struct Group * current = * head_ref;
     while (current != NULL)
     {
         if (strcmp(current->group_name, name) == 0) {
@@ -186,14 +188,18 @@ bool addApp_toGroup(struct Group * head, char * name, char * secret, int cl_fd, 
     return false;
 }
 
-void deleteGroup(struct Group ** head_ref, char * name)
-{
+bool deleteGroup(struct Group ** head_ref, char * name)
+{   
+    if(FindGroup(*head_ref, name) == false) {
+        return false;
+    }
+
     struct Group * temp = * head_ref, * prev;
  
     if (temp != NULL && (strcmp(temp->group_name, name)==0)) {
-        *head_ref = temp->next;
+        * head_ref = temp->next;
         free(temp);
-        return;
+        return true;
     }
  
     while (temp != NULL && (strcmp(temp->group_name, name)!=0)) {
@@ -202,16 +208,19 @@ void deleteGroup(struct Group ** head_ref, char * name)
     }
  
     if (temp == NULL)
-        return;
+        return true;
  
     prev->next = temp->next;
  
     free(temp);
+
+    return true;
 }
 
-void deleteGroupList(struct Group** head_ref) {
-   struct Group* current = *head_ref;
-   struct Group* next;
+void deleteGroupList(struct Group ** head_ref) {
+
+   struct Group * current = * head_ref;
+   struct Group * next;
  
    while (current != NULL)
    {
@@ -222,7 +231,7 @@ void deleteGroupList(struct Group** head_ref) {
        current = next;
    }
    
-   *head_ref = NULL;
+   * head_ref = NULL;
 }
 
 

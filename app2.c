@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "KVS-lib.h"
 
 #define SV_SOCK_PATH "/tmp/server_sock"
@@ -7,25 +8,31 @@
 
 int main(int argc, char *argv[]) {
 
-    char group_id[5] = "g1\n";
+    char group_id1[5] = "g1";
+    char group_id2[5] = "g2";
     char secret[4] = "123";
-    char key1[4] = "abc";
+    char key1[4] = "oke";
     char key2[4] = "def";
-    char value1[4] = "999";
+    char key3[4] = "def";
+    char value1[10] = "oleee";
+    char value4[10] = "oioioi";
     char * value2;
+    char * value3;
 
-    int flag = establish_connection (group_id, secret);
+    int flag = establish_connection(group_id1, secret);
+    printf("%d\n", flag);
+
+    flag = put_value(key3, value4);
     printf("%d\n", flag);
 
     flag = put_value(key1, value1);
     printf("%d\n", flag);
 
-    flag = get_value(key1, &value2);
-    printf("%d\n", flag);
-    printf("value: %s\n", value2);
+    printf("Before calling function\n");
 
-    flag = delete_value(key1);
+    flag = get_value(key2, &value3);
     printf("%d\n", flag);
+    printf("value: %s\n", value3);
 
     flag = close_connection();
     printf("%d\n", flag);

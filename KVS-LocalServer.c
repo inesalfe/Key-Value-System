@@ -214,7 +214,12 @@ void * thread_func(void * arg) {
 	int sucess_flag;
 	// Variable with a code saying which function the app wants to execute
 	int func_code = -1;
-	while((numBytes = recv(cfd, &func_code, sizeof(int), 0)) > 0) {
+	while(1) {
+		printf("Before receive func_code\n");
+		numBytes = recv(cfd, &func_code, sizeof(int), 0);
+		printf("After receive func_code\n");
+		if (numBytes < 0)
+			break;
 		sucess_flag = -1;
 		if (func_code == 0) {
 			sucess_flag = put_value(group_id_app, &cfd);
@@ -258,20 +263,40 @@ void * get_cmd_func(void * arg) {
 	char str[BUF_SIZE];
 	char g_name[BUF_SIZE];
 	bool flag;
+	size_t len;
 	while (1) {
 		fgets(str, sizeof(str), stdin);
 		if (strcmp(str, "Create group\n") == 0) {
+			printf("Insert group id:\n");
 			fgets(g_name, sizeof(g_name), stdin);
-			CreateGroup(&groups, g_name);
-			printf("Group created!\n");
+			len = strlen(g_name);
+			if (len > 0 && g_name[len-1] == '\n') {
+			  g_name[--len] = '\0';
+			}
+			if (CreateGroup(&groups, g_name) == NULL)
+        		printf("That group already exists!\n");
+        	else
+				printf("Group created!\n");
 		}
 		else if (strcmp(str, "Delete group\n") == 0) {
+			printf("Insert group id:\n");
 			fgets(g_name, sizeof(g_name), stdin);
-			deleteGroup(&groups, g_name);
-			printf("Group deleted!\n");
+			len = strlen(g_name);
+			if (len > 0 && g_name[len-1] == '\n') {
+			  g_name[--len] = '\0';
+			}
+			if (deleteGroup(&groups, g_name))
+        		printf("Group deleted!\n");
+        	else
+        		printf("Group not found!\n");
 		}
 		else if (strcmp(str, "Show group info\n") == 0) {
+			printf("Insert group id:\n");
 			fgets(g_name, sizeof(g_name), stdin);
+			len = strlen(g_name);
+			if (len > 0 && g_name[len-1] == '\n') {
+			  g_name[--len] = '\0';
+			}
 			flag = ShowGroupInfo(groups, g_name);
 			if (flag == false)
 				printf("Group not found!\n");
@@ -279,9 +304,14 @@ void * get_cmd_func(void * arg) {
 		else if (strcmp(str, "Show application status\n") == 0) {
 			ShowAppStatus(groups);
 		}
+		else if (strcmp(str, "q\n") == 0) {
+			printf("Exiting server...\n");
+			break;
+		}
 		else
 			printf("Unknown command\n");
 	}
+
 	pthread_exit(NULL);
 }
 

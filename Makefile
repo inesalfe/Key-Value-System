@@ -1,6 +1,6 @@
 CC=gcc
 
-all: KVS-LocalServer app1 app2 app3 main_group main_app
+all: KVS-LocalServer app1 app2 main_group main_app
 
 KVS-LocalServer: appList.o hash.o groupList.o KVS-LocalServer.c
 	$(CC) KVS-LocalServer.c -o KVS-LocalServer appList.o groupList.o hash.o
@@ -10,9 +10,6 @@ app1: KVS-lib.o app1.c
 
 app2: KVS-lib.o app2.c
 	$(CC) app2.c -o app2 KVS-lib.o
-
-app3: KVS-lib.o app3.c
-	$(CC) app3.c -o app3 KVS-lib.o
 
 KVS-lib.o: KVS-lib.c KVS-lib.h
 	$(CC) -c KVS-lib.c
