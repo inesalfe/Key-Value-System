@@ -15,6 +15,11 @@
 #define BUF_SIZE 100
 #define BACKLOG 5
 
+struct cl_info {
+    int file_descriptor;
+    long cl_pid;
+};
+
 // Linked List of groups
 struct Group * groups;
 
@@ -24,20 +29,20 @@ int put_value (char * group_name, int * app_fd) {
 	char temp_value[BUF_SIZE];
 	int ready = 1;
 	ssize_t numBytes;
-	if (write(*app_fd, &ready, sizeof(ready)) != sizeof(ready)) {
+	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Server: Error in sending ready flag\n");
 		return -1;
 	}
-	numBytes = read(*app_fd, temp_key, sizeof(temp_key));
+	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Server: Error in reading key\n");
 		return -1;
 	}
-	if (write(*app_fd, &ready, sizeof(ready)) != sizeof(ready)) {
+	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Server: Error in sending ready flag\n");
 		return -1;
 	}
-	numBytes = read(*app_fd, temp_value, sizeof(temp_value));
+	numBytes = recv(*app_fd, temp_value, sizeof(temp_value), 0);
 	if (numBytes == -1) {
 		printf("Server: Error in reading value\n");
 		return -1;
@@ -55,11 +60,11 @@ int get_value (char * group_name, int * app_fd) {
 	int ready = 1;
 	int length = -1;
 	ssize_t numBytes;
-	if (write(*app_fd, &ready, sizeof(ready)) != sizeof(ready)) {
+	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int), 0) {
 		printf("Server: Error in sending ready flag\n");
 		return -1;
 	}
-	numBytes = read(*app_fd, temp_key, sizeof(temp_key));
+	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Server: Error in reading key\n");
 		return -1;
@@ -68,13 +73,13 @@ int get_value (char * group_name, int * app_fd) {
 		strcpy(temp_value, getKeyValue(groups, group_name, temp_key));
 		length = strlen(temp_value);
 	}
-	if (write(*app_fd, &length, sizeof(length)) != sizeof(length)) {
+	if (send(*app_fd, &length, sizeof(int), 0) != sizeof(int), 0) {
 		printf("Server: Error in sending length\n");
 		return -1;
 	}
 	if (length == -1)
 		return -1;
-	if (write(*app_fd, &temp_value, sizeof(&temp_value)) != sizeof(&temp_value)) {
+	if (send(*app_fd, temp_value, (length+1)*sizeof(char), 0) != (length+1)*sizeof(char)) {
 		printf("Server: Error in sending value pointer\n");
 		return -1;
 	}
@@ -88,18 +93,18 @@ int delete_value (char * group_name, int * app_fd) {
 	int ready = 1;
 	int check_key = -1;
 	ssize_t numBytes;
-	if (write(*app_fd, &ready, sizeof(ready)) != sizeof(ready)) {
+	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Server: Error in sending ready flag\n");
 		return -1;
 	}
-	numBytes = read(*app_fd, temp_key, sizeof(temp_key));
+	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Server: Error in reading key\n");
 		return -1;
 	}
 	if (findKeyValue(groups, group_name, temp_key))
 		check_key = 1;
-	if (write(*app_fd, &check_key, sizeof(check_key)) != sizeof(check_key)) {
+	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int), 0) {
 		printf("Server: Error in sending check_key\n");
 		return -1;
 	}
@@ -114,19 +119,22 @@ int register_callback (int * app_fd) {
 
 void * thread_func(void * arg) {
 
+	struct cl_info * info = arg;
+	int cfd = info->file_descriptor;
+	int pid = info->cl_pid;
+
 	// Group_id received by the app
 	char group_id_app[BUF_SIZE];
 	// Secret received by the app
 	char secret_app[BUF_SIZE];
 
 	// Definition of app file descriptor
-	int cfd = *(int *)arg;
 	ssize_t numBytes;
 	int error_flag = 1;
 	bool flag;
 
 	// Sending flag saying that connection was established
-	if (write(cfd, &error_flag, sizeof(int)) != sizeof(int)) {
+	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
 		printf("Server: Error in sending flag for established connection\n");
 		if (close(cfd) == -1) {
 			printf("Server: Error in closing socket file descriptor\n");
@@ -138,7 +146,7 @@ void * thread_func(void * arg) {
 	error_flag = -1;
 
 	// Reading group_id
-	numBytes = read(cfd, group_id_app, BUF_SIZE);
+	numBytes = recv(cfd, group_id_app, sizeof(group_id_app), 0);
 
 	// Error in reading group_id
 	if (numBytes == -1) {
@@ -157,7 +165,7 @@ void * thread_func(void * arg) {
 		error_flag = 0;
 
 	// Sending flag saying if group_id is correct or not
-	if (write(cfd, &error_flag, sizeof(int)) != sizeof(int)) {
+	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int), 0) {
 		printf("Server: Error in sending flag for correct/incorrect group_id\n");
 		if (close(cfd) == -1) {
 			printf("Server: Error in closing socket file descriptor\n");
@@ -172,12 +180,8 @@ void * thread_func(void * arg) {
 	// Reusing the error flag to check the secret
 	error_flag = -1;
 
-	struct sockaddr_un cl_addr;
-	socklen_t len;
-	len = sizeof(struct sockaddr_un);
-
 	// Reading secret
-	numBytes = recvfrom(cfd, secret_app, sizeof(BUF_SIZE), 0, (struct sockaddr *) &cl_addr, &len);
+	numBytes = recv(cfd, secret_app, sizeof(secret_app), 0);
 
 	// Errot in reading secret
 	if (numBytes == -1) {
@@ -188,9 +192,6 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);        
 	}
 
-	// Get pid of the app using the app path
-	int pid = atol(cl_addr.sun_path + strlen("/tmp/app_socket_"));
-	
 	// Check if secret is correct
 	flag = addApp_toGroup(groups, group_id_app, secret_app, cfd, pid);
 	if (flag == true)
@@ -199,7 +200,7 @@ void * thread_func(void * arg) {
 		error_flag = 0;
 
 	// Sending flag saying if secret is correct or not
-	if (write(cfd, &error_flag, sizeof(int)) != sizeof(int)) {
+	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
 		printf("Server: Error in sending flag for correct/incorrect secret\n");
 		if (close(cfd) == -1) {
 			printf("Server: Error in closing socket file descriptor\n");
@@ -212,35 +213,39 @@ void * thread_func(void * arg) {
 	// This flag is sent to the app after each function indicating sucess
 	int sucess_flag;
 	// Variable with a code saying which function the app wants to execute
-	int func_code;
-	while((numBytes = read(cfd, &func_code, sizeof(int))) > 0) {
+	int func_code = -1;
+	while((numBytes = recv(cfd, &func_code, sizeof(int), 0)) > 0) {
 		sucess_flag = -1;
 		if (func_code == 0) {
 			sucess_flag = put_value(group_id_app, &cfd);
-			if (write(cfd, &sucess_flag, sizeof(int)) != sizeof(int)) {
-				printf("Server: Error in sending sucess flag\n");
-			}
+			if (sucess_flag == -1)
+				printf("Error in 'put_value' operation\n");
+			else
+				printf("Successful 'put_value' operation\n");
 		}
 		else if (func_code == 1) {
 			sucess_flag = get_value(group_id_app, &cfd);
-			if (write(cfd, &sucess_flag, sizeof(sucess_flag)) != sizeof(sucess_flag)) {
-				printf("Server: Error in sending sucess flag\n");
-			}
+			if (sucess_flag == -1)
+				printf("Error in 'get_value' operation\n");
+			else
+				printf("Successful 'get_value' operation\n");
 		}
 		else if (func_code == 2) {
 			sucess_flag = delete_value(group_id_app, &cfd);
-			if (write(cfd, &sucess_flag, sizeof(sucess_flag)) != sizeof(sucess_flag)) {
-				printf("Server: Error in sending sucess flag\n");
-			}
+			if (sucess_flag == -1)
+				printf("Error in 'delete_value' operation\n");
+			else
+				printf("Successful 'delete_value' operation\n");
 		}
 		else if (func_code == 3)
 			register_callback(&cfd);
 		else {
 			if (close_GroupApp(&groups, group_id_app, cfd))
 				sucess_flag = 1;
-			if (write(cfd, &sucess_flag, sizeof(sucess_flag)) != sizeof(sucess_flag)) {
-				printf("Server: Error in sending sucess flag\n");
-			}
+			if (sucess_flag == -1)
+				printf("Error in 'close_connection' operation\n");
+			else
+				printf("Successful 'close_connection' operation\n");
 			break;
 		}
 	}
@@ -274,6 +279,8 @@ void * get_cmd_func(void * arg) {
 		else if (strcmp(str, "Show application status\n") == 0) {
 			ShowAppStatus(groups);
 		}
+		else
+			printf("Unknown command\n");
 	}
 	pthread_exit(NULL);
 }
@@ -314,11 +321,13 @@ int main(int argc, char *argv[]) {
 
 	// Creation of threads that will handle the apps
 	for (;;) {
-		int cfd = accept(sfd, (struct sockaddr *) &app_addr, &len);
-		if (cfd == -1)
+		struct cl_info temp_info;
+		temp_info.file_descriptor = accept(sfd, (struct sockaddr *) &app_addr, &len);
+		temp_info.cl_pid = atol(app_addr.sun_path + strlen("/tmp/app_socket_"));
+		if (temp_info.file_descriptor == -1)
 			printf("Server: Error in acception\n");
 		pthread_t t_id;
-		pthread_create(&t_id, NULL, thread_func, &cfd);
+		pthread_create(&t_id, NULL, thread_func, &temp_info);
 	}
 
 	remove(sv_addr.sun_path);

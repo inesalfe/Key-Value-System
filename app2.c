@@ -20,23 +20,12 @@ int main(int argc, char *argv[]) {
     flag = put_value(key1, value1);
     printf("%d\n", flag);
 
-    // Neste exemplo a key está errada e é suposto dar erro
-    // flag = get_value(key2, &value2);
-    // printf("%d\n", flag);
-    // printf("value: %s\n", value2);
-
     flag = get_value(key1, &value2);
     printf("%d\n", flag);
     printf("value: %s\n", value2);
 
-    // Neste exemplo a key está errada e é suposto dar erro
-    // flag = delete_value(key2);
-    // printf("%d\n", flag);
-
     flag = delete_value(key1);
     printf("%d\n", flag);
-
-    exit(0);
 
     flag = close_connection();
     printf("%d\n", flag);

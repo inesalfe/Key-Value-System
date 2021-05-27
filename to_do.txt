@@ -22,6 +22,7 @@ KVS-LocalServer.c
 
 - Qual é a condição para a qual o programa acaba? Eliminar todos os grupos? Fechar a conexão de todas as app's? u basta um comando a ser recebido do teclado, algo como "quit"?
 - Register callback
+- \n no Create group
 
 TODO O LADO
 

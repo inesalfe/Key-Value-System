@@ -33,8 +33,7 @@ int establish_connection (char * group_id, char * secret) {
 
     // App address assignment with PID
     cl_addr.sun_family = AF_UNIX;
-    snprintf(cl_addr.sun_path, sizeof(cl_addr.sun_path), "/tmp/client_socket_%ld", (long) pthread_self());
-    // printf("%s\n", cl_addr.sun_path);
+    snprintf(cl_addr.sun_path, sizeof(cl_addr.sun_path), "/tmp/app_socket_%ld", (long) pthread_self());
 
     // Bind app
     if (bind(cfd, (struct sockaddr *) &cl_addr, sizeof(struct sockaddr_un)) == -1) {
@@ -54,9 +53,9 @@ int establish_connection (char * group_id, char * secret) {
     int check_secret = -1;
 
     // Wait for flag saying that the connectiong was established
-    numBytes = read(cfd, &check_connection, sizeof(int));
+    numBytes = recv(cfd, &check_connection, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading response of the server for the established connection\n");
+        printf("App: Error in receaving response of the server for the established connection\n");
         return -4;
     }
 
@@ -67,7 +66,7 @@ int establish_connection (char * group_id, char * secret) {
     }
 
     // Sending the group_id to the server
-	if (write(cfd, group_id, sizeof(group_id)) != sizeof(group_id)) {
+	if (send(cfd, group_id, sizeof(group_id), 0) != sizeof(group_id)) {
         if (close(cfd) == -1) {
         	printf("App: Error in closing socket after error in sending group_id\n");
         	return -6;
@@ -76,10 +75,10 @@ int establish_connection (char * group_id, char * secret) {
         return -7;
 	}
 
-    // Reading flag saying if the group_id is correct
-	numBytes = read(cfd, &check_group, sizeof(int));
+    // Receaving flag saying if the group_id is correct
+	numBytes = recv(cfd, &check_group, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading response of the server for the sent group_id\n");
+        printf("App: Error in receaving response of the server for the sent group_id\n");
         return -8;
     }
 
@@ -94,7 +93,7 @@ int establish_connection (char * group_id, char * secret) {
     }
 
     // Sending secret
-    if (write(cfd, secret, sizeof(secret)) != sizeof(secret)) {
+    if (send(cfd, secret, sizeof(secret), 0) != sizeof(secret)) {
         if (close(cfd) == -1) {
             printf("App: Error in closing socket after error in sending secret\n");
             return -11;
@@ -103,10 +102,10 @@ int establish_connection (char * group_id, char * secret) {
         return -12;
     }
 
-    // Reading flag for the secret
-    numBytes = read(cfd, &check_secret, sizeof(int));
+    // Receaving flag for the secret
+    numBytes = recv(cfd, &check_secret, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading response of the server for the sent secret\n");
+        printf("App: Error in receaving response of the server for the sent secret\n");
         return -13;
     }
     if (check_secret != 1) {
@@ -142,19 +141,18 @@ int put_value (char * key, char * value) {
     int func_code = 0;
 
     // Send the function name to the server
-	if (write(cfd, &func_code, sizeof(func_code)) != sizeof(func_code)) {
+	if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
         printf("App: Error in sending function name\n");
         return -2;
 	}
 
     int ready = -1;
-    int operation_sucess = -1;
     ssize_t numBytes;
 
     // See if server is ready to send the key
-    numBytes = read(cfd, &ready, sizeof(int));
+    numBytes = recv(cfd, &ready, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading ready\n");
+        printf("App: Error in receaving ready\n");
         return -3;
     }
 
@@ -164,7 +162,7 @@ int put_value (char * key, char * value) {
     }
 
     // Send the key
-    if (write(cfd, key, sizeof(key)) != sizeof(key)) {
+    if (send(cfd, key, sizeof(key), 0) != sizeof(key)) {
         printf("App: Error in sending key\n");
         return -5;
     }
@@ -173,9 +171,9 @@ int put_value (char * key, char * value) {
     ready = -1;
 
     // See if server is ready to send the key
-    numBytes = read(cfd, &ready, sizeof(int));
+    numBytes = recv(cfd, &ready, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading ready\n");
+        printf("App: Error in receaving ready\n");
         return -6;
     }
 
@@ -185,22 +183,12 @@ int put_value (char * key, char * value) {
     }
 
     // Sending the value
-    if (write(cfd, value, sizeof(value)) != sizeof(value)) {
+    if (send(cfd, value, sizeof(value), 0) != sizeof(value)) {
         printf("App: Error in sending value\n");
         return -8;
     }
 
-    numBytes = read(cfd, &operation_sucess, sizeof(int));
-    if (numBytes == -1) {
-        printf("App: Error in reading operation_sucess\n");
-        return -9;
-    }
-
-    if (operation_sucess == 1)
-        return 1;
-
-    printf("App: Other error\n");
-    return -10;
+    return 1;
 
 }
 
@@ -215,20 +203,19 @@ int get_value (char * key, char ** value) {
     int func_code = 1;
 
     // Send the function name to the server
-    if (write(cfd, &func_code, sizeof(func_code)) != sizeof(func_code)) {
+    if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
         printf("App: Error in sending function name\n");
         return -2;
     }
 
     int ready = -1;
     int length = -1;
-    int operation_sucess = -1;
     ssize_t numBytes;
 
     // See if server is ready to send the key
-    numBytes = read(cfd, &ready, sizeof(int));
+    numBytes = recv(cfd, &ready, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading ready\n");
+        printf("App: Error in receaving ready\n");
         return -3;
     }
 
@@ -238,17 +225,19 @@ int get_value (char * key, char ** value) {
     }
 
     // Send the key
-    if (write(cfd, key, sizeof(key)) != sizeof(key)) {
+    if (send(cfd, key, sizeof(key), 0) != sizeof(key)) {
         printf("App: Error in sending key\n");
         return -5;
     }
 
     // See if server is ready to send the key
-    numBytes = read(cfd, &length, sizeof(int));
+    numBytes = recv(cfd, &length, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading ready\n");
+        printf("App: Error in receaving ready\n");
         return -6;
     }
+
+    printf("length: %d\n", length);
 
     if (length == -1) {
         printf("App: Key not existing\n");
@@ -257,23 +246,13 @@ int get_value (char * key, char ** value) {
 
     *value = (char *) malloc((length+1)*sizeof(char));
 
-    numBytes = read(cfd, *value, sizeof(*value));
+    numBytes = recv(cfd, *value, (length+1)*sizeof(char), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading value\n");
+        printf("App: Error in receaving value\n");
         return -8;
     }
 
-    numBytes = read(cfd, &operation_sucess, sizeof(operation_sucess));
-    if (numBytes == -1) {
-        printf("App: Error in reading operation_sucess\n");
-        return -9;
-    }
-
-    if (operation_sucess == 1)
-        return 1;
-
-    printf("App: Other error\n");
-    return -10;
+    return 1;
 
 }
 
@@ -287,20 +266,19 @@ int delete_value (char * key) {
     int func_code = 2;
 
     // Send the function code to the server
-    if (write(cfd, &func_code, sizeof(func_code)) != sizeof(func_code)) {
+    if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
         printf("App: Error in sending function code\n");
         return -2;
     }
 
     int ready = -1;
     int check_key = -1;
-    int operation_sucess = -1;
     ssize_t numBytes;
 
     // See if server is ready to receive the key
-    numBytes = read(cfd, &ready, sizeof(int));
+    numBytes = recv(cfd, &ready, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading ready\n");
+        printf("App: Error in receaving ready\n");
         return -3;
     }
 
@@ -310,15 +288,15 @@ int delete_value (char * key) {
     }
 
     // Send the key
-    if (write(cfd, key, sizeof(key)) != sizeof(key)) {
+    if (send(cfd, key, sizeof(key), 0) != sizeof(key)) {
         printf("App: Error in sending key\n");
         return -5;
     }
 
     // Receive flag saying if the key is an existing one or not
-    numBytes = read(cfd, &check_key, sizeof(int));
+    numBytes = recv(cfd, &check_key, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading operation_sucess\n");
+        printf("App: Error in receaving check_key\n");
         return -6;
     }
 
@@ -328,18 +306,7 @@ int delete_value (char * key) {
         return -7;
     }
 
-    // Receive operation sucess flag
-    numBytes = read(cfd, &operation_sucess, sizeof(int));
-    if (numBytes == -1) {
-        printf("App: Error in reading operation_sucess\n");
-        return -8;
-    }
-
-    if (operation_sucess == 1)
-        return 1;
-
-    printf("App: Other error\n");
-    return -9;
+    return 1;
 
 }
 
@@ -354,20 +321,19 @@ int register_callback (char * key, void (*callback_function)(char *)) {
     int func_code = 3;
 
     // Send the function name to the server
-    if (write(cfd, &func_code, sizeof(func_code)) != sizeof(func_code)) {
+    if (send(cfd, &func_code, sizeof(func_code), 0) != sizeof(func_code)) {
         printf("App: Error in sending function name\n");
         return -2;
     }
 
     int ready = -1;
     int check_key = -1;
-    int operation_success = -1;
     ssize_t numBytes;
 
     // See if server is ready to send the key
-    numBytes = read(cfd, &ready, sizeof(int));
+    numBytes = recv(cfd, &ready, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading ready\n");
+        printf("App: Error in receaving ready\n");
         return -3;
     }
 
@@ -377,15 +343,15 @@ int register_callback (char * key, void (*callback_function)(char *)) {
     }
 
     // Send the key
-    if (write(cfd, key, sizeof(key)) != sizeof(key)) {
+    if (send(cfd, key, sizeof(key), 0) != sizeof(key)) {
         printf("App: Error in sending key\n");
         return -5;
     }
 
     // See if server is ready to send the key
-    numBytes = read(cfd, &check_key, sizeof(int));
+    numBytes = recv(cfd, &check_key, sizeof(int), 0);
     if (numBytes == -1) {
-        printf("App: Error in reading ready\n");
+        printf("App: Error in receaving ready\n");
         return -6;
     }
 
@@ -399,29 +365,18 @@ int register_callback (char * key, void (*callback_function)(char *)) {
     }
 
     // Send the pointer to the function
-    if (write(cfd, callback_function, sizeof(callback_function)) != sizeof(callback_function)) {
+    if (send(cfd, callback_function, sizeof(callback_function), 0) != sizeof(callback_function)) {
         printf("App: Error in sending the function pointer\n");
         return -9;
     }
 
-    numBytes = read(cfd, &operation_success, sizeof(&operation_success));
-    if (numBytes == -1) {
-        printf("App: Error in reading value\n");
-        return -10;
-    }
-
-    if (operation_success == 1)
-        return 1;
-
-    printf("App: Other error\n");
-    return -11;
+    return 1;
 
 }
 
-// Isto tem de ser mudado mas para isso é preciso fazer uma lista ligada de app's no servidor
 int close_connection() {
 
-    int operation_success = -1;
+    int func_code = 4;
     ssize_t numBytes;
 
     if (cfd == -1) {
@@ -429,9 +384,8 @@ int close_connection() {
         return -1;
     }
 
-    numBytes = read(cfd, &operation_success, sizeof(&operation_success));
-    if (numBytes == -1) {
-        printf("App: Error in reading value\n");
+    if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
+        printf("App: Error in sending function name\n");
         return -2;
     }
 
@@ -440,9 +394,6 @@ int close_connection() {
         return -3;
     }
 
-    if (operation_success == 1)
-        return 1;
+    return 1;
 
-    printf("App: Other error\n");
-    return -4;
 }
