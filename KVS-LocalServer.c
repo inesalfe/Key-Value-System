@@ -258,6 +258,8 @@ void * thread_func(void * arg) {
 	pthread_exit(NULL);
 }
 
+int exit_status = 0;
+
 void * get_cmd_func(void * arg) {
 
 	char str[BUF_SIZE];
@@ -306,6 +308,7 @@ void * get_cmd_func(void * arg) {
 		}
 		else if (strcmp(str, "q\n") == 0) {
 			printf("Exiting server...\n");
+			exit_status = 1;
 			break;
 		}
 		else
@@ -351,6 +354,8 @@ int main(int argc, char *argv[]) {
 
 	// Creation of threads that will handle the apps
 	for (;;) {
+		if (exit_status == 1)
+			break;
 		struct cl_info temp_info;
 		temp_info.file_descriptor = accept(sfd, (struct sockaddr *) &app_addr, &len);
 		temp_info.cl_pid = atol(app_addr.sun_path + strlen("/tmp/app_socket_"));
