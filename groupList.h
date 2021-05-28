@@ -2,15 +2,23 @@
 
 #define BUF_SIZE 100
 
+extern struct sockaddr_in sv_addr;
+extern int sfd;
+
 // For now, we have the group_name, the secret, a table of keys and values, and array of apps and a pointer to the next element
 // After we finish this layer, the secret will be fetched from the autentification server
 struct Group {
 	char group_name[BUF_SIZE];
-	char secret[BUF_SIZE];
+	// char secret[BUF_SIZE];
 	struct HashTable * table;
 	struct App * apps;
 	struct Group * next;
 };
+
+char * getSecret(char * g_name);
+void deleteGroupAuthServer(char * g_name);
+void createGroupAuthServer(char * g_name, char * secret);
+bool findGroupAuthServer(char * g_name);
 
 // There are three function that receive a Group ** and I don't know why
 // Maybe try to tchnage this to Group *

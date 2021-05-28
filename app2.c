@@ -6,6 +6,8 @@
 #define SV_SOCK_PATH "/tmp/server_sock"
 #define BUF_SIZE 100
 
+int cfd = -1;
+
 int main(int argc, char *argv[]) {
 
     char group_id1[5] = "g1";

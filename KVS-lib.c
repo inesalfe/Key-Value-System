@@ -9,10 +9,7 @@
 
 #define SV_SOCK_PATH "/tmp/server_sock"
 
-// Mudar valores dos erros no caso do erro ser igual
-
-// Resolver isto
-int cfd = -1;
+extern int cfd;
 
 // Needs testing for different errors and use of sterror
 int establish_connection (char * group_id, char * secret) {

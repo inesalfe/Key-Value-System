@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <arpa/inet.h>
 #include "groupList.h"
 
 #define SV_SOCK_PATH "/tmp/server_sock"
@@ -22,6 +23,10 @@ struct cl_info {
 
 // Linked List of groups
 struct Group * groups;
+// Server of Authentification Server
+struct sockaddr_in sv_addr_auth;
+// File descriptor for the connection to the AuthServer
+int sfd_auth;
 
 int put_value (char * group_name, int * app_fd) {
 
@@ -323,6 +328,15 @@ int main(int argc, char *argv[]) {
 	// Definition of the socket address and file descriptor
 	struct sockaddr_un sv_addr;
 	int sfd;
+
+    sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sfd_auth == -1) {
+        printf("Client: Error in socket creation\n");
+        exit(-1);
+    }
+
+    sv_addr_auth.sin_family = AF_INET;
+    sv_addr_auth.sin_port = htons(58032);
 
 	// File descriptor assignment
 	sfd = socket(AF_UNIX, SOCK_STREAM, 0);

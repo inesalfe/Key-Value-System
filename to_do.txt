@@ -1,6 +1,5 @@
 KVS-lib.c
 
-- O file descriptor está definido como variável global mas fazia mais sentido estar no mais de teste no que no .c.
 - Testar o "establish_connection" para os vários tipos de erro.
 - Testar o "put_value" para os vários tipos de erro.
 - No "get_value" como é que se sabe se a operação foi um sucesso? So se se receber primeiro o comprimento da string que é supsto receber.
@@ -22,6 +21,10 @@ KVS-LocalServer.c
 - Register callback
 - O get values da app1 às vezes fica preso no recv function code. 
 - Quando o utilizador coloca 'q', a thread que lê os comandos do teclado acaba mas as outras continuam. Como é q forço o programa a acabar quando aquela thread acaba?
+
+KVS-AuthServer.c
+
+- Será que um servidor pode pedir o segredo de um grupo que não lhe pertence?
 
 TODO O LADO
 
