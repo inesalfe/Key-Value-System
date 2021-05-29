@@ -293,18 +293,23 @@ int main(int argc, char *argv[]) {
 		printf("Group found!\n");
 	else
 		printf("Group not found!\n");
-	char * secret_recv = (char *)malloc(BUF_SIZE*sizeof(char));
-	if (getSecret(g_name_send) != NULL) {
-		strncpy(secret_recv, getSecret(g_name_send), sizeof(getSecret(g_name_send)));
+	char * secret_recv = getSecret(g_name_send);
+	if (secret_recv != NULL) {
 		printf("Secret: %s\n", secret_recv);
 	}
-	memset(secret_recv, 0, sizeof(secret_recv));
-	if (getSecret(g_name_cmp) != NULL) {
-		strncpy(secret_recv, getSecret(g_name_cmp), sizeof(getSecret(g_name_send)));
+	free(secret_recv);
+	secret_recv = getSecret(g_name_cmp);
+	if (secret_recv != NULL) {
 		printf("Secret: %s\n", secret_recv);
 	}
+	free(secret_recv);
 	deleteGroup(g_name_cmp);
 	deleteGroup(g_name_send);
+
+	if (close(sfd) == -1) {
+		printf("Client: Error in socket creation\n");
+		exit(-1);
+	}
 
 	return 0;
 

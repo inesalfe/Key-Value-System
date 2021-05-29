@@ -35,21 +35,21 @@ int put_value (char * group_name, int * app_fd) {
 	int ready = 1;
 	ssize_t numBytes;
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
-		printf("Server: Error in sending ready flag\n");
+		printf("Local Server: Error in sending ready flag\n");
 		return -1;
 	}
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
-		printf("Server: Error in reading key\n");
+		printf("Local Server: Error in reading key\n");
 		return -1;
 	}
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
-		printf("Server: Error in sending ready flag\n");
+		printf("Local Server: Error in sending ready flag\n");
 		return -1;
 	}
 	numBytes = recv(*app_fd, temp_value, sizeof(temp_value), 0);
 	if (numBytes == -1) {
-		printf("Server: Error in reading value\n");
+		printf("Local Server: Error in reading value\n");
 		return -1;
 	}
 	if (addKeyValue_toGroup(groups, group_name, *app_fd, temp_key, temp_value))
@@ -66,26 +66,26 @@ int get_value (char * group_name, int * app_fd) {
 	int length = -1;
 	ssize_t numBytes;
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
-		printf("Server: Error in sending ready flag\n");
+		printf("Local Server: Error in sending ready flag\n");
 		return -1;
 	}
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
-		printf("Server: Error in reading key\n");
+		printf("Local Server: Error in reading key\n");
 		return -1;
 	}
-	if (getKeyValue(groups, group_name, temp_key) != NULL) {
-		strcpy(temp_value, getKeyValue(groups, group_name, temp_key));
+	char * temp_value = getKeyValue(groups, group_name, temp_key);
+	if (temp_value != NULL) {
 		length = strlen(temp_value);
 	}
 	if (send(*app_fd, &length, sizeof(int), 0) != sizeof(int)) {
-		printf("Server: Error in sending length\n");
+		printf("Local Server: Error in sending length\n");
 		return -1;
 	}
 	if (length == -1)
 		return -1;
 	if (send(*app_fd, temp_value, (length+1)*sizeof(char), 0) != (length+1)*sizeof(char)) {
-		printf("Server: Error in sending value pointer\n");
+		printf("Local Server: Error in sending value pointer\n");
 		return -1;
 	}
 	return 1;
@@ -99,18 +99,18 @@ int delete_value (char * group_name, int * app_fd) {
 	int check_key = -1;
 	ssize_t numBytes;
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
-		printf("Server: Error in sending ready flag\n");
+		printf("Local Server: Error in sending ready flag\n");
 		return -1;
 	}
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
-		printf("Server: Error in reading key\n");
+		printf("Local Server: Error in reading key\n");
 		return -1;
 	}
 	if (findKeyValue(groups, group_name, temp_key))
 		check_key = 1;
 	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int)) {
-		printf("Server: Error in sending check_key\n");
+		printf("Local Server: Error in sending check_key\n");
 		return -1;
 	}
 	if (check_key == -1)
@@ -141,9 +141,9 @@ void * thread_func(void * arg) {
 
 	// Sending flag saying that connection was established
 	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
-		printf("Server: Error in sending flag for established connection\n");
+		printf("Local Server: Error in sending flag for established connection\n");
 		if (close(cfd) == -1) {
-			printf("Server: Error in closing socket file descriptor\n");
+			printf("Local Server: Error in closing socket file descriptor\n");
 		}
 		pthread_exit(NULL);
 	}
@@ -156,9 +156,9 @@ void * thread_func(void * arg) {
 
 	// Error in reading group_id
 	if (numBytes == -1) {
-		printf("Server: Error in reading group_id\n");
+		printf("Local Server: Error in reading group_id\n");
 		if (close(cfd) == -1) {
-			printf("Server: Error in closing socket file descriptor\n");
+			printf("Local Server: Error in closing socket file descriptor\n");
 		}
 		pthread_exit(NULL);        
 	}
@@ -172,9 +172,9 @@ void * thread_func(void * arg) {
 
 	// Sending flag saying if group_id is correct or not
 	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
-		printf("Server: Error in sending flag for correct/incorrect group_id\n");
+		printf("Local Server: Error in sending flag for correct/incorrect group_id\n");
 		if (close(cfd) == -1) {
-			printf("Server: Error in closing socket file descriptor\n");
+			printf("Local Server: Error in closing socket file descriptor\n");
 		}
 		pthread_exit(NULL);
 	}
@@ -191,9 +191,9 @@ void * thread_func(void * arg) {
 
 	// Errot in reading secret
 	if (numBytes == -1) {
-		printf("Server: Error in reading secret\n");
+		printf("Local Server: Error in reading secret\n");
 		if (close(cfd) == -1) {
-			printf("Server: Error in closing socket file descriptor\n");
+			printf("Local Server: Error in closing socket file descriptor\n");
 		}
 		pthread_exit(NULL);        
 	}
@@ -207,9 +207,9 @@ void * thread_func(void * arg) {
 
 	// Sending flag saying if secret is correct or not
 	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
-		printf("Server: Error in sending flag for correct/incorrect secret\n");
+		printf("Local Server: Error in sending flag for correct/incorrect secret\n");
 		if (close(cfd) == -1) {
-			printf("Server: Error in closing socket file descriptor\n");
+			printf("Local Server: Error in closing socket file descriptor\n");
 		}
 		pthread_exit(NULL);
 	}
@@ -221,9 +221,9 @@ void * thread_func(void * arg) {
 	// Variable with a code saying which function the app wants to execute
 	int func_code = -1;
 	while(1) {
-		printf("Before receive func_code\n");
+		// printf("Before receive func_code\n");
 		numBytes = recv(cfd, &func_code, sizeof(int), 0);
-		printf("After receive func_code\n");
+		// printf("After receive func_code\n");
 		if (numBytes < 0)
 			break;
 		sucess_flag = -1;
@@ -263,8 +263,6 @@ void * thread_func(void * arg) {
 
 	pthread_exit(NULL);
 }
-
-int exit_status = 0;
 
 void * get_cmd_func(void * arg) {
 
@@ -314,7 +312,6 @@ void * get_cmd_func(void * arg) {
 		}
 		else if (strcmp(str, "q\n") == 0) {
 			printf("Exiting server...\n");
-			exit_status = 1;
 			break;
 		}
 		else
@@ -332,7 +329,7 @@ int main(int argc, char *argv[]) {
 
 	sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sfd_auth == -1) {
-		printf("Client: Error in socket creation\n");
+		printf("Local Server: Error in socket creation\n");
 		exit(-1);
 	}
 
@@ -342,7 +339,7 @@ int main(int argc, char *argv[]) {
 	// File descriptor assignment
 	sfd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sfd == -1)
-		printf("Server: Error in socket creation\n");
+		printf("Local Server: Error in socket creation\n");
 
 	// Clean socket path
 	remove(SV_SOCK_PATH);
@@ -352,11 +349,11 @@ int main(int argc, char *argv[]) {
 	strncpy(sv_addr.sun_path, SV_SOCK_PATH, sizeof(sv_addr.sun_path) - 1);
 
 	if (bind(sfd, (struct sockaddr *) &sv_addr, sizeof(struct sockaddr_un)) == -1)
-		printf("Server: Error in binding\n");
+		printf("Local Server: Error in binding\n");
 
 	// Listen
 	if (listen(sfd, BACKLOG) == 1)
-		printf("Server: Error in listening\n");
+		printf("Local Server: Error in listening\n");
 
 	struct sockaddr_un app_addr;
 	socklen_t len = sizeof(struct sockaddr_un);
@@ -369,15 +366,18 @@ int main(int argc, char *argv[]) {
 
 	// Creation of threads that will handle the apps
 	for (;;) {
-		if (exit_status == 1)
-			break;
 		struct cl_info temp_info;
 		temp_info.file_descriptor = accept(sfd, (struct sockaddr *) &app_addr, &len);
 		temp_info.cl_pid = atol(app_addr.sun_path + strlen("/tmp/app_socket_"));
 		if (temp_info.file_descriptor == -1)
-			printf("Server: Error in acception\n");
+			printf("Local Server: Error in accepting\n");
 		pthread_t t_id;
 		pthread_create(&t_id, NULL, thread_func, &temp_info);
+	}
+
+	if (close(sfd_auth) == -1) {
+		printf("Local Error in closing socket\n");
+		exit(-1);
 	}
 
 	remove(sv_addr.sun_path);

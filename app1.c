@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/un.h>
 #include "KVS-lib.h"
 
 #define SV_SOCK_PATH "/tmp/server_sock"
 #define BUF_SIZE 100
 
 int cfd = -1;
+struct sockaddr_un cl_addr;
 
 int main(int argc, char *argv[]) {
 
@@ -40,6 +42,8 @@ int main(int argc, char *argv[]) {
 
     flag = close_connection();
     printf("%d\n", flag);
+
+    free(value2);
 
     return 0;
 

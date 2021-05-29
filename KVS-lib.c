@@ -10,12 +10,13 @@
 #define SV_SOCK_PATH "/tmp/server_sock"
 
 extern int cfd;
+extern struct sockaddr_un cl_addr;
 
 // Needs testing for different errors and use of sterror
 int establish_connection (char * group_id, char * secret) {
 
     // Definition of server address
-	struct sockaddr_un sv_addr, cl_addr;
+	struct sockaddr_un sv_addr;
 
     // Assignment of server address
     cfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -31,6 +32,8 @@ int establish_connection (char * group_id, char * secret) {
     // App address assignment with PID
     cl_addr.sun_family = AF_UNIX;
     snprintf(cl_addr.sun_path, sizeof(cl_addr.sun_path), "/tmp/app_socket_%ld", (long) pthread_self());
+
+    remove(cl_addr.sun_path);
 
     // Bind app
     if (bind(cfd, (struct sockaddr *) &cl_addr, sizeof(struct sockaddr_un)) == -1) {
@@ -334,6 +337,8 @@ int close_connection() {
         printf("App: Error in closing socket\n");
         return -1;
     }
+
+    remove(cl_addr.sun_path);
 
     return 1;
 
