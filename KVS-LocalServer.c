@@ -28,6 +28,8 @@ struct sockaddr_in sv_addr_auth;
 // File descriptor for the connection to the AuthServer
 int sfd_auth;
 
+// int exit_flag = 0;
+
 int put_value (char * group_name, int * app_fd) {
 
 	char temp_key[BUF_SIZE];
@@ -52,7 +54,7 @@ int put_value (char * group_name, int * app_fd) {
 		printf("Local Server: Error in reading value\n");
 		return -1;
 	}
-	if (addKeyValue_toGroup(groups, group_name, *app_fd, temp_key, temp_value))
+	if (AddKeyValueToGroup(groups, group_name, *app_fd, temp_key, temp_value))
 		return 1;
 	else
 		return 0;
@@ -61,7 +63,7 @@ int put_value (char * group_name, int * app_fd) {
 int get_value (char * group_name, int * app_fd) {
 
 	char temp_key[BUF_SIZE];
-	char temp_value[BUF_SIZE];
+	// char temp_value[BUF_SIZE];
 	int ready = 1;
 	int length = -1;
 	ssize_t numBytes;
@@ -74,7 +76,7 @@ int get_value (char * group_name, int * app_fd) {
 		printf("Local Server: Error in reading key\n");
 		return -1;
 	}
-	char * temp_value = getKeyValue(groups, group_name, temp_key);
+	char * temp_value = GetKeyValueLocalServer(groups, group_name, temp_key);
 	if (temp_value != NULL) {
 		length = strlen(temp_value);
 	}
@@ -107,7 +109,7 @@ int delete_value (char * group_name, int * app_fd) {
 		printf("Local Server: Error in reading key\n");
 		return -1;
 	}
-	if (findKeyValue(groups, group_name, temp_key))
+	if (FindKeyValueLocalServer(groups, group_name, temp_key))
 		check_key = 1;
 	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending check_key\n");
@@ -115,7 +117,8 @@ int delete_value (char * group_name, int * app_fd) {
 	}
 	if (check_key == -1)
 		return -1;
-	deleteKeyValue(groups, group_name, temp_key);
+	if (DeleteKeyValue(groups, group_name, temp_key) == false)
+		return -1;
 	return 1;
 }
 
@@ -164,11 +167,11 @@ void * thread_func(void * arg) {
 	}
 
 	// Check if group_id is correct
-	flag = FindGroup(groups, group_id_app);
-	if (flag == true)
-		error_flag = 1;
-	else
+	int flag_int = FindGroupAuthServer(group_id_app);
+	if (flag_int == -1 || flag_int == 0)
 		error_flag = 0;
+	else
+		error_flag = 1;
 
 	// Sending flag saying if group_id is correct or not
 	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
@@ -199,7 +202,7 @@ void * thread_func(void * arg) {
 	}
 
 	// Check if secret is correct
-	flag = addApp_toGroup(groups, group_id_app, secret_app, cfd, pid);
+	flag = AddAppToGroup(groups, group_id_app, secret_app, cfd, pid);
 	if (flag == true)
 		error_flag = 1;
 	else
@@ -251,7 +254,7 @@ void * thread_func(void * arg) {
 		else if (func_code == 3)
 			register_callback(&cfd);
 		else {
-			if (close_GroupApp(&groups, group_id_app, cfd))
+			if (CloseApp(&groups, group_id_app, cfd))
 				sucess_flag = 1;
 			if (sucess_flag == -1)
 				printf("Error in 'close_connection' operation\n");
@@ -279,7 +282,7 @@ void * get_cmd_func(void * arg) {
 			if (len > 0 && g_name[len-1] == '\n') {
 			  g_name[--len] = '\0';
 			}
-			if (CreateGroup(&groups, g_name) == NULL)
+			if (CreateGroupLocalServer(&groups, g_name) == NULL)
 				printf("That group already exists!\n");
 			else
 				printf("Group created!\n");
@@ -291,7 +294,7 @@ void * get_cmd_func(void * arg) {
 			if (len > 0 && g_name[len-1] == '\n') {
 			  g_name[--len] = '\0';
 			}
-			if (deleteGroup(&groups, g_name))
+			if (DeleteGroupLocalServer(&groups, g_name))
 				printf("Group deleted!\n");
 			else
 				printf("Group not found!\n");
@@ -312,6 +315,7 @@ void * get_cmd_func(void * arg) {
 		}
 		else if (strcmp(str, "q\n") == 0) {
 			printf("Exiting server...\n");
+			// exit_flag = 1;
 			break;
 		}
 		else
@@ -366,6 +370,8 @@ int main(int argc, char *argv[]) {
 
 	// Creation of threads that will handle the apps
 	for (;;) {
+		// if (exit_flag = 1)
+		// 	break;
 		struct cl_info temp_info;
 		temp_info.file_descriptor = accept(sfd, (struct sockaddr *) &app_addr, &len);
 		temp_info.cl_pid = atol(app_addr.sun_path + strlen("/tmp/app_socket_"));

@@ -11,7 +11,158 @@
 extern struct sockaddr_in sv_addr_auth;
 extern int sfd_auth;
 
-char * getSecret(char * g_name) {
+int CreateGroupAuthServer(char * g_name, char * secret) {
+
+	char func_str[BUF_SIZE] = "NewGroup";
+	int ready_flag = -1;
+
+	if (sendto(sfd_auth, func_str, sizeof(func_str), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(func_str)) {
+		printf("Server: Error in sendto\n");
+		exit(-1);
+	}
+
+	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
+		printf("Error in recvfrom\n");
+		exit(-1);
+	}
+
+	if (ready_flag == -1) {
+		printf("Server not ready\n");
+		return -1;
+	}
+
+	if (sendto(sfd_auth, g_name, sizeof(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(g_name)) {
+		printf("Server: Error in sendto\n");
+		exit(-1);
+	}
+
+	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
+		printf("Error in recvfrom\n");
+		exit(-1);
+	}
+
+	if (ready_flag == -1) {
+		printf("Group name already exists\n");
+		return -1;
+	}
+
+	if (sendto(sfd_auth, secret, sizeof(secret), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(secret)) {
+		printf("Server: Error in sendto\n");
+		exit(-1);
+	}
+
+	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
+		printf("Error in recvfrom\n");
+		exit(-1);
+	}
+
+	return ready_flag;
+}
+
+char * CreateGroupLocalServer(struct Group ** head_ref, char * name) {
+
+	if(FindGroupLocalServer(* head_ref, name) || FindGroupAuthServer(name)) {
+		printf("Group id already exists\n");
+		return NULL;
+	}
+
+	struct Group * new_node = (struct Group *) calloc(1, sizeof(struct Group));
+	struct Group * last = * head_ref;
+
+	char * secret_temp = "123";
+	strcpy(new_node->group_name, name);
+
+	if(CreateGroupAuthServer(new_node->group_name, secret_temp) == -1) {
+		return NULL;
+	}
+
+	new_node->table = create_table(SIZE_IN);
+	new_node->apps = NULL;
+	new_node->next = NULL;
+
+	if (* head_ref == NULL)
+	{
+		* head_ref = new_node;
+		return secret_temp;
+	}
+
+	while (last->next != NULL)
+		last = last->next;
+
+	last->next = new_node;
+	return secret_temp;
+}
+
+bool FindKeyValueLocalServer(struct Group * head, char * name, char * key) {
+
+	struct Group * current = head;
+	while (current != NULL)
+	{
+		if (strcmp(current->group_name, name) == 0) {
+			if (ht_search(current->table, key) != NULL)
+				return true;
+			else
+				return false;
+		}
+		current = current->next;
+	}
+
+	return false;
+}
+
+int FindGroupAuthServer(char * g_name) {
+
+	char func_str[BUF_SIZE] = "FindGroup";
+	int ready_flag = -1;
+
+	if (sendto(sfd_auth, func_str, sizeof(func_str), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(func_str)) {
+		printf("Server: Error in sendto\n");
+		exit(-1);
+	}
+
+	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
+		printf("Error in recvfrom\n");
+		exit(-1);
+	}
+
+	if (ready_flag == -1) {
+		printf("Server not ready\n");
+		return -1;
+	}
+
+	if (sendto(sfd_auth, g_name, sizeof(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(g_name)) {
+		printf("Server: Error in sendto\n");
+		exit(-1);
+	}
+
+	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
+		printf("Error in recvfrom\n");
+		exit(-1);
+	}
+
+	if (ready_flag == -1) {
+		printf("Group not found\n");
+		return 0;
+	}
+	else {
+		return 1;
+	}
+}
+
+bool FindGroupLocalServer(struct Group * head, char * name) {
+
+	struct Group * current = head;
+	while (current != NULL)
+	{
+		if (strcmp(current->group_name, name) == 0) {
+			return true;
+		}
+		current = current->next;
+	}
+	return false;
+}
+
+char * GetSecretFromAuthServer(char * g_name) {
 
 	char func_str[BUF_SIZE] = "GetSecret";
 	int ready_flag = -1;
@@ -61,180 +212,7 @@ char * getSecret(char * g_name) {
 	return secret;
 }
 
-bool findGroupAuthServer(char * g_name) {
-
-	char func_str[BUF_SIZE] = "FindGroup";
-	int ready_flag = -1;
-
-	if (sendto(sfd_auth, func_str, sizeof(func_str), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(func_str)) {
-		printf("Server: Error in sendto\n");
-		exit(-1);
-	}
-
-	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
-		printf("Error in recvfrom\n");
-		exit(-1);
-	}
-
-	if (ready_flag == -1) {
-		printf("Server not ready\n");
-		return false;
-	}
-
-	if (sendto(sfd_auth, g_name, sizeof(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(g_name)) {
-		printf("Server: Error in sendto\n");
-		exit(-1);
-	}
-
-	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
-		printf("Error in recvfrom\n");
-		exit(-1);
-	}
-
-	if (ready_flag == -1) {
-		// printf("Group name doesn't exist\n");
-		return false;
-	}
-	else {
-		// printf("Group found\n");
-		return true;
-	}
-}
-
-void ShowAllGroupsInfo(struct Group * group)
-{
-	while (group != NULL)
-	{	
-		printf("Name: %s\n", group->group_name);
-		char * secret_recv = getSecret(group->group_name);
-		if (secret_recv != NULL) {
-			printf("Secret: %s\n", secret_recv);
-		}
-		printf("Number of key-value pairs: %d\n", group->table->count);
-		group = group->next;
-		free(secret_recv);
-	}
-}
-
-bool ShowGroupInfo(struct Group * head, char * name)
-{
-	struct Group * current = head;
-	while (current != NULL)
-	{
-		if (strcmp(current->group_name, name) == 0) {
-			printf("Name: %s\n", current->group_name);
-			char * secret_recv = getSecret(current->group_name);
-			if (secret_recv != NULL) {
-				printf("Secret: %s\n", secret_recv);
-			}
-			printf("Number of key-value pairs: %d\n", current->table->count);
-			free(secret_recv);
-			return true;
-		}
-		current = current->next;
-	}
-	return false;
-}
-
-void ShowAppStatus(struct Group * group)
-{
-	while (group != NULL)
-	{   
-		printf("%s:\n", group->group_name);
-		print_AppList(group->apps);
-		group = group->next;
-	}
-}
-
-void createGroupAuthServer(char * g_name, char * secret) {
-
-	char func_str[BUF_SIZE] = "NewGroup";
-	int ready_flag = -1;
-
-	if (sendto(sfd_auth, func_str, sizeof(func_str), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(func_str)) {
-		printf("Server: Error in sendto\n");
-		exit(-1);
-	}
-
-	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
-		printf("Error in recvfrom\n");
-		exit(-1);
-	}
-
-	if (ready_flag == -1) {
-		printf("Server not ready\n");
-		return;
-	}
-
-	if (sendto(sfd_auth, g_name, sizeof(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(g_name)) {
-		printf("Server: Error in sendto\n");
-		exit(-1);
-	}
-
-	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
-		printf("Error in recvfrom\n");
-		exit(-1);
-	}
-
-	if (ready_flag == -1) {
-		printf("Group name already exists\n");
-		return;
-	}
-
-	if (sendto(sfd_auth, secret, sizeof(secret), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(secret)) {
-		printf("Server: Error in sendto\n");
-		exit(-1);
-	}
-
-	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
-		printf("Error in recvfrom\n");
-		exit(-1);
-	}
-
-	if (ready_flag == -1) {
-		printf("Error in create new group\n");
-		return;
-	}
-	else {
-		printf("Group created\n");
-	}
-
-	return;
-}
-
-char * CreateGroup(struct Group ** head_ref, char * name) {
-
-	if(FindGroup(* head_ref, name) || findGroupAuthServer(name)) {
-		return NULL;
-	}
-
-	struct Group * new_node = (struct Group *) calloc(1, sizeof(struct Group));
-	struct Group * last = * head_ref;
-
-	char * secret_temp = "123";
-	strcpy(new_node->group_name, name);
-
-	createGroupAuthServer(new_node->group_name, secret_temp);
-
-	new_node->table = create_table(SIZE_IN);
-	new_node->apps = NULL;
-	new_node->next = NULL;
-
-	if (* head_ref == NULL)
-	{
-		* head_ref = new_node;
-		return secret_temp;
-	}
-
-	while (last->next != NULL)
-		last = last->next;
-
-	last->next = new_node;
-	return secret_temp;
-
-}
-
-char * getKeyValue(struct Group * head, char * name, char * key) {
+char * GetKeyValueLocalServer(struct Group * head, char * name, char * key) {
 
 	struct Group * current = head;
 	while (current != NULL)
@@ -247,41 +225,30 @@ char * getKeyValue(struct Group * head, char * name, char * key) {
 	return NULL;
 }
 
-bool findKeyValue(struct Group * head, char * name, char * key) {
-
+bool AddAppToGroup(struct Group * head, char * name, char * secret, int cl_fd, int pid_in) {
+	
 	struct Group * current = head;
 	while (current != NULL)
 	{
 		if (strcmp(current->group_name, name) == 0) {
-			if (ht_search(current->table, key) != NULL)
-				return true;
-			else
+			char * secret_recv = GetSecretFromAuthServer(current->group_name);
+			if (strcmp(secret_recv, secret) == 0) {
+				AppendApp(&current->apps, cl_fd, pid_in);
+				free(secret_recv);
+				return true;                
+			}
+			else {
+				printf("Incorrect secret\n");
+				free(secret_recv);
 				return false;
+			}
 		}
 		current = current->next;
 	}
-
 	return false;
-
 }
 
-void deleteKeyValue(struct Group * head, char * name, char * key) {
-
-	struct Group * current = head;
-	while (current != NULL)
-	{
-		if (strcmp(current->group_name, name) == 0) {
-			ht_delete(current->table, key);
-			return;
-		}
-		current = current->next;
-	}
-
-	return;
-}
-
-
-bool addKeyValue_toGroup(struct Group * head, char * name, int cl_fd, char * key, char * value) {
+bool AddKeyValueToGroup(struct Group * head, char * name, int cl_fd, char * key, char * value) {
 
 	struct Group * current = head;
 	while (current != NULL)
@@ -299,60 +266,37 @@ bool addKeyValue_toGroup(struct Group * head, char * name, int cl_fd, char * key
 		current = current->next;
 	}
 	return false;
-
 }
 
-bool FindGroup(struct Group * head, char * name) {
-
-	struct Group * current = head;
-	while (current != NULL)
-	{
-		if (strcmp(current->group_name, name) == 0) {
-			return true;
-		}
-		current = current->next;
-	}
-	return false;
-
-}
-
-bool close_GroupApp(struct Group ** head_ref, char * name, int cl_fd) {
+bool CloseApp(struct Group ** head_ref, char * name, int cl_fd) {
 
 	struct Group * current = * head_ref;
 	while (current != NULL)
 	{
 		if (strcmp(current->group_name, name) == 0) {
-			return close_App(current->apps, cl_fd);
+			return CloseConnection(current->apps, cl_fd);
 		}
 		current = current->next;
 	}
 	return false;
-
 }
 
-bool addApp_toGroup(struct Group * head, char * name, char * secret, int cl_fd, int pid_in) {
-	
+bool DeleteKeyValue(struct Group * head, char * name, char * key) {
+
 	struct Group * current = head;
 	while (current != NULL)
 	{
 		if (strcmp(current->group_name, name) == 0) {
-			char * secret_recv = getSecret(current->group_name);
-			if (strcmp(secret_recv, secret) == 0) {
-				append_App(&current->apps, cl_fd, pid_in);
-				free(secret_recv);
-				return true;                
-			}
-			else {
-				free(secret_recv);
-				return false;
-			}
+			ht_delete(current->table, key);
+			return true;
 		}
 		current = current->next;
 	}
+
 	return false;
 }
 
-void deleteGroupAuthServer(char * g_name) {
+int DeleteGroupAuthServer(char * g_name) {
 
 	char func_str[BUF_SIZE] = "DeleteGroup";
 	int ready_flag = -1;
@@ -369,7 +313,7 @@ void deleteGroupAuthServer(char * g_name) {
 
 	if (ready_flag == -1) {
 		printf("Server not ready\n");
-		return;
+		return -1;
 	}
 
 	if (sendto(sfd_auth, g_name, sizeof(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(g_name)) {
@@ -384,26 +328,23 @@ void deleteGroupAuthServer(char * g_name) {
 
 	if (ready_flag == -1) {
 		printf("Group name doesn't exist\n");
-	}
-	else {
-		printf("Group deleted\n");
+		return 0;
 	}
 
-	return;
-
+	return 1;
 }
 
-bool deleteGroup(struct Group ** head_ref, char * name)
-{   
-	if(FindGroup(*head_ref, name) == false) {
+bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {   
+	
+	if(FindGroupLocalServer(*head_ref, name) == false) {
 		return false;
 	}
 
 	struct Group * temp = * head_ref, * prev;
  
 	if (temp != NULL && (strcmp(temp->group_name, name)==0)) {
-		deleteGroupAuthServer(temp->group_name);
-		deleteAppList(&temp->apps);
+		DeleteGroupAuthServer(temp->group_name);
+		DeleteAppList(&temp->apps);
 		free_table(temp->table);
 		* head_ref = temp->next;
 		free(temp);
@@ -411,8 +352,8 @@ bool deleteGroup(struct Group ** head_ref, char * name)
 	}
  
 	while (temp != NULL && (strcmp(temp->group_name, name)!=0)) {
-		deleteGroupAuthServer(temp->group_name);
-		deleteAppList(&temp->apps);
+		DeleteGroupAuthServer(temp->group_name);
+		DeleteAppList(&temp->apps);
 		free_table(temp->table);
 		prev = temp;
 		temp = temp->next;
@@ -428,7 +369,7 @@ bool deleteGroup(struct Group ** head_ref, char * name)
 	return true;
 }
 
-void deleteGroupList(struct Group ** head_ref) {
+int DeleteGroupList(struct Group ** head_ref) {
 
 	struct Group * current = * head_ref;
 	struct Group * next;
@@ -436,8 +377,8 @@ void deleteGroupList(struct Group ** head_ref) {
 	while (current != NULL)
 	{
 		next = current->next;
-		deleteGroupAuthServer(current->group_name);
-		deleteAppList(&current->apps);
+		DeleteGroupAuthServer(current->group_name);
+		DeleteAppList(&current->apps);
 		free_table(current->table);
 		free(current);
 		current = next;
@@ -446,5 +387,44 @@ void deleteGroupList(struct Group ** head_ref) {
 	* head_ref = NULL;
 }
 
+void ShowAllGroupsInfo(struct Group * group) {
+	while (group != NULL)
+	{	
+		printf("Name: %s\n", group->group_name);
+		char * secret_recv = GetSecretFromAuthServer(group->group_name);
+		if (secret_recv != NULL) {
+			printf("Secret: %s\n", secret_recv);
+		}
+		printf("Number of key-value pairs: %d\n", group->table->count);
+		group = group->next;
+		free(secret_recv);
+	}
+}
 
+bool ShowGroupInfo(struct Group * head, char * name) {
+	struct Group * current = head;
+	while (current != NULL)
+	{
+		if (strcmp(current->group_name, name) == 0) {
+			printf("Name: %s\n", current->group_name);
+			char * secret_recv = GetSecretFromAuthServer(current->group_name);
+			if (secret_recv != NULL) {
+				printf("Secret: %s\n", secret_recv);
+			}
+			printf("Number of key-value pairs: %d\n", current->table->count);
+			free(secret_recv);
+			return true;
+		}
+		current = current->next;
+	}
+	return false;
+}
 
+void ShowAppStatus(struct Group * group) {
+	while (group != NULL)
+	{   
+		printf("%s:\n", group->group_name);
+		PrintAppList(group->apps);
+		group = group->next;
+	}
+}

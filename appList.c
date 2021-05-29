@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include "appList.h"
 
-void print_AppList(struct App * app)
+void PrintAppList(struct App * app)
 {
 	int counter = 0;
 	while (app != NULL)
@@ -21,7 +21,7 @@ void print_AppList(struct App * app)
 	}
 }
 
-void append_App(struct App ** head_ref, int cl_fd, int pid_in)
+void AppendApp(struct App ** head_ref, int cl_fd, int pid_in)
 {
 	struct App * new_node = (struct App *) calloc(1, sizeof(struct App));
 	struct App * last = * head_ref;
@@ -52,7 +52,7 @@ bool FindApp(struct App * head, int cl_fd) {
 	return false;    
 }
 
-bool close_App(struct App * head, int cl_fd)
+bool CloseConnection(struct App * head, int cl_fd)
 {
 	struct App * current = head;
 	while (current != NULL)
@@ -66,7 +66,7 @@ bool close_App(struct App * head, int cl_fd)
 	return false;
 }
 
-void deleteAppList(struct App ** head_ref) {
+void DeleteAppList(struct App ** head_ref) {
 
 	struct App * current = * head_ref;
 	struct App * next;

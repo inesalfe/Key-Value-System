@@ -16,6 +16,7 @@ KVS-LocalServer.c
 - O get values da app1 às vezes fica preso no recv function code. 
 - Quando o utilizador coloca 'q', a thread que lê os comandos do teclado acaba mas as outras continuam. Como é q forço o programa a acabar quando aquela thread acaba?
 - Quando acaba, fechar o file descriptor com o auth server
+- Print secret quando se cria o grupo
 
 KVS-AuthServer.c
 

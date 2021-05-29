@@ -213,29 +213,29 @@ int main(int argc, char *argv[]) {
 						exit(-1);
 					}
 				}
-                else if (strcmp(buf, "FindGroup") == 0) {
-                    printf("Authentication server accepted connection from (%s, %u)\n", claddrStr, ntohs(claddr.sin_port));
-                    ready_flag = 1;
-                    // Send flag saying that AuthServer is ready to receive group
-                    if (sendto(sfd, &ready_flag, sizeof(int), 0, (struct sockaddr *) &claddr, sizeof(struct sockaddr_in)) != sizeof(int)) {
-                        printf("Authentication Server: Error in sendto\n");
-                        exit(-1);
-                    }
-                    // Receive group name
-                    if (recvfrom(sfd, g_name, sizeof(g_name), 0, (struct sockaddr *) &claddr, &len) == -1) {
-                        printf("Authentication Server: Error in recvfrom\n");
-                        exit(-1);
-                    }
-                    // Check if group name exists
-                    // If it doesn't ready_flag = -1, else do nothing.
-                    if (ht_search(table, g_name) == NULL)
-                        ready_flag = -1;
-                    // Send success flag (reuse ready flag)
-                    if (sendto(sfd, &ready_flag, sizeof(int), 0, (struct sockaddr *) &claddr, sizeof(struct sockaddr_in)) != sizeof(int)) {
-                        printf("Authentication Server: Error in sendto\n");
-                        exit(-1);
-                    }
-                }
+				else if (strcmp(buf, "FindGroup") == 0) {
+					printf("Authentication server accepted connection from (%s, %u)\n", claddrStr, ntohs(claddr.sin_port));
+					ready_flag = 1;
+					// Send flag saying that AuthServer is ready to receive group
+					if (sendto(sfd, &ready_flag, sizeof(int), 0, (struct sockaddr *) &claddr, sizeof(struct sockaddr_in)) != sizeof(int)) {
+						printf("Authentication Server: Error in sendto\n");
+						exit(-1);
+					}
+					// Receive group name
+					if (recvfrom(sfd, g_name, sizeof(g_name), 0, (struct sockaddr *) &claddr, &len) == -1) {
+						printf("Authentication Server: Error in recvfrom\n");
+						exit(-1);
+					}
+					// Check if group name exists
+					// If it doesn't ready_flag = -1, else do nothing.
+					if (ht_search(table, g_name) == NULL)
+						ready_flag = -1;
+					// Send success flag (reuse ready flag)
+					if (sendto(sfd, &ready_flag, sizeof(int), 0, (struct sockaddr *) &claddr, sizeof(struct sockaddr_in)) != sizeof(int)) {
+						printf("Authentication Server: Error in sendto\n");
+						exit(-1);
+					}
+				}
 			}
 		}
 		memset(&claddr, 0, sizeof(claddr));

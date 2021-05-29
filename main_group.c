@@ -67,7 +67,7 @@ int main() {
 	struct Group * group_head = NULL;
 	bool flag;
 
-	char * str_temp = CreateGroup(&group_head, n1);
+	char * str_temp = CreateGroupLocalServer(&group_head, n1);
 	strcpy(s1, str_temp);
 	printf("Secret of %s: %s\n", n1, s1);
 	printf("Printing information of all groups...\n");
@@ -80,7 +80,7 @@ int main() {
 	flag = ShowGroupInfo(group_head, n2);
 	if (flag == false)
 		printf("Group not fround!\n");
-	str_temp = CreateGroup(&group_head, n2);
+	str_temp = CreateGroupLocalServer(&group_head, n2);
 	strcpy(s2, str_temp);
 	printf("Secret of %s: %s\n", n2, s2);
 	printf("Printing information of all groups...\n");
@@ -90,27 +90,27 @@ int main() {
 	if (flag == false)
 		printf("Group not fround!\n");
 
-	flag = addApp_toGroup(group_head, n1, s1, cfd1, pid1);
+	flag = AddAppToGroup(group_head, n1, s1, cfd1, pid1);
 	if (flag == false)
 		printf("Error in appending app to group!\n");
 	else
 		printf("App 1 appended to %s\n", n1);
-	flag = addApp_toGroup(group_head, n1, s1, cfd2, pid2);
+	flag = AddAppToGroup(group_head, n1, s1, cfd2, pid2);
 	if (flag == false)
 		printf("Error in appending app to group!\n");
 	else
 		printf("App 2 appended to %s\n", n1);
-	flag = addApp_toGroup(group_head, n2, s1, cfd3, pid3);
+	flag = AddAppToGroup(group_head, n2, s1, cfd3, pid3);
 	if (flag == false)
 		printf("Error in appending app to group!\n");
 	else
 		printf("App 3 appended to %s\n", n2);
-	flag = addApp_toGroup(group_head, n2, s3, cfd3, pid3);
+	flag = AddAppToGroup(group_head, n2, s3, cfd3, pid3);
 	if (flag == false)
 		printf("Error in appending app to group!\n");
 	else
 		printf("App 3 appended to %s\n", n2);
-	flag = addApp_toGroup(group_head, n2, s2, cfd4, pid4);
+	flag = AddAppToGroup(group_head, n2, s2, cfd4, pid4);
 	if (flag == false)
 		printf("Error in appending app to group!\n");
 	else
@@ -126,26 +126,26 @@ int main() {
 	char v2[30] = "oléeee";
 	char v3[30] = "chimichanga";
 
-	flag = findKeyValue(group_head, n1, k1);
+	flag = FindKeyValueLocalServer(group_head, n1, k1);
 	if (flag == false)
 		printf("Key not found!\n");
-	flag = FindGroup(group_head, n1);
+	flag = FindGroupAuthServer(n1);
 	if (flag == false)
 		printf("Group %s not found!\n", n1);
-	flag = FindGroup(group_head, n3);
+	flag = FindGroupAuthServer(n3);
 	if (flag == false)
 		printf("Group %s not found!\n", n3);
 
-	flag = addKeyValue_toGroup(group_head, n1, cfd3, k1, v1);
+	flag = AddKeyValueToGroup(group_head, n1, cfd3, k1, v1);
 	if (flag == false)
 		printf("Error in adding key-value pair to group %s\n", n1);
-	flag = addKeyValue_toGroup(group_head, n1, cfd1, k1, v1);
+	flag = AddKeyValueToGroup(group_head, n1, cfd1, k1, v1);
 	if (flag == false)
 		printf("Error in adding key-value pair to group %s\n", n1);
-	flag = addKeyValue_toGroup(group_head, n1, cfd2, k2, v2);
+	flag = AddKeyValueToGroup(group_head, n1, cfd2, k2, v2);
 	if (flag == false)
 		printf("Error in adding key-value pair to group %s\n", n1);
-	flag = addKeyValue_toGroup(group_head, n2, cfd3, k3, v3);
+	flag = AddKeyValueToGroup(group_head, n2, cfd3, k3, v3);
 	if (flag == false)
 		printf("Error in adding key-value pair to group %s\n", n2);
 
@@ -155,41 +155,41 @@ int main() {
 	char v2_recv[30];
 	char v3_recv[30];
 
-	if (getKeyValue(group_head, n1, k3) == NULL)
+	if (GetKeyValueLocalServer(group_head, n1, k3) == NULL)
 		printf("Null string\n");
 	else
-		printf("Received key: %s\n", getKeyValue(group_head, n1, k3));
+		printf("Received key: %s\n", GetKeyValueLocalServer(group_head, n1, k3));
 
-	if (getKeyValue(group_head, n1, k1) == NULL)
+	if (GetKeyValueLocalServer(group_head, n1, k1) == NULL)
 		printf("Null string\n");
 	else
-		printf("Received key: %s\n", getKeyValue(group_head, n1, k1));
+		printf("Received key: %s\n", GetKeyValueLocalServer(group_head, n1, k1));
 
-	flag = close_GroupApp(&group_head, n1, cfd3);
+	flag = CloseApp(&group_head, n1, cfd3);
 	if (flag == false)
 		printf("Error in closing app %d in group %s\n", cfd3, n1);
-	flag = close_GroupApp(&group_head, n1, cfd1);
+	flag = CloseApp(&group_head, n1, cfd1);
 	if (flag == false)
 		printf("Error in closing app %d in group %s\n", cfd1, n1);
 	ShowAppStatus(group_head);
 
-	flag = addKeyValue_toGroup(group_head, n1, cfd1, k1, v2);
+	flag = AddKeyValueToGroup(group_head, n1, cfd1, k1, v2);
 	if (flag == false)
 		printf("Error in adding key-value pair to group %s\n", n1);
-	strcpy(v1_recv, getKeyValue(group_head, n1, k1));
+	strcpy(v1_recv, GetKeyValueLocalServer(group_head, n1, k1));
 	printf("Received key: %s\n", v1_recv);
 
-	deleteKeyValue(group_head, n1, k1);
-	if (getKeyValue(group_head, n1, k1) == NULL)
+	DeleteKeyValue(group_head, n1, k1);
+	if (GetKeyValueLocalServer(group_head, n1, k1) == NULL)
 		printf("Null string\n");
 	else
-		printf("Received key: %s\n", getKeyValue(group_head, n1, k1));
+		printf("Received key: %s\n", GetKeyValueLocalServer(group_head, n1, k1));
 	ShowAllGroupsInfo(group_head);
 
-	deleteGroup(&group_head, n1);
+	DeleteGroupLocalServer(&group_head, n1);
 	ShowAllGroupsInfo(group_head);
 
-	deleteGroupList(&group_head);
+	DeleteGroupList(&group_head);
 	
 	if (close(cfd1) == -1) {
 		printf("Error in closing socket\n");

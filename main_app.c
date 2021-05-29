@@ -75,39 +75,39 @@ int main()
 
 	struct App * head = NULL;
  
-	append_App(&head, cfd1, pid1);
+	AppendApp(&head, cfd1, pid1);
 
 	printf("App one appended!\n");
 	printf("Printing app list...\n");
 
-	print_AppList(head);
+	PrintAppList(head);
 
-	append_App(&head, cfd2, pid2);
+	AppendApp(&head, cfd2, pid2);
 
 	printf("App two appended!\n");
 	printf("Printing app list...\n");
 
-	print_AppList(head);
+	PrintAppList(head);
 
-	append_App(&head, cfd3, pid3);
+	AppendApp(&head, cfd3, pid3);
 
 	printf("App three appended!\n");
 	printf("Closing first app...\n");
 
-	close_App(head, cfd1);
+	CloseConnection(head, cfd1);
 
 	printf("Printing app list...\n");
 
-	print_AppList(head);
+	PrintAppList(head);
 
 	printf("Closing second and third app...\n");
 
-	close_App(head, cfd2);
-	close_App(head, cfd3);
+	CloseConnection(head, cfd2);
+	CloseConnection(head, cfd3);
 
 	printf("Printing app list...\n");
 
-	print_AppList(head);
+	PrintAppList(head);
 
 	printf("Was the file descriptor %d found? %d\n", cfd1, FindApp(head, cfd1));
 
@@ -135,7 +135,7 @@ int main()
 	remove(cl_addr_3.sun_path);
 	remove(cl_addr_4.sun_path);
 
-	deleteAppList(&head);
+	DeleteAppList(&head);
 
 	return 0;
 }
