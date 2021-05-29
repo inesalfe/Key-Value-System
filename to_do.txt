@@ -8,13 +8,7 @@ KVS-lib.c
 
 groupList.c
 
-- Depois de acabar a primeira layer, o segredo tem de sair da estrutura grupo e tem der para a hashtable / lista ligada que está no servidor de autentificação.
-- Há function que recebem Group ** em vez de Group *. Eu não sei se é preciso mas como nunca lidei muito com listas ligadas foi o que vi na net.
 - Como é que devo gerar o segredo?
-
-appList.c
-
-- O mesmo do que no groupList em relação a App ** e App *.
 
 KVS-LocalServer.c
 
@@ -25,6 +19,7 @@ KVS-LocalServer.c
 KVS-AuthServer.c
 
 - Será que um servidor pode pedir o segredo de um grupo que não lhe pertence?
+- Será que um servidor pode criar um grupo que já existe noutro servidor?
 
 TODO O LADO
 

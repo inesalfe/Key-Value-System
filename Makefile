@@ -1,4 +1,4 @@
-CC=gcc
+CC=gcc -g
 
 all: KVS-LocalServer app1 app2 app3 main_group main_app KVS-AuthServer
 
