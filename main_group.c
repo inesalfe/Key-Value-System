@@ -126,13 +126,13 @@ int main() {
 
     flag = findKeyValue(group_head, n1, k1);
     if (flag == false)
-        printf("Key not fround!\n");
+        printf("Key not found!\n");
     flag = FindGroup(group_head, n1);
     if (flag == false)
-        printf("Group %s not fround!\n", n1);
+        printf("Group %s not found!\n", n1);
     flag = FindGroup(group_head, n3);
     if (flag == false)
-        printf("Group %s not fround!\n", n3);
+        printf("Group %s not found!\n", n3);
 
     flag = addKeyValue_toGroup(group_head, n1, cfd3, k1, v1);
     if (flag == false)
@@ -148,8 +148,6 @@ int main() {
         printf("Error in adding key-value pair to group %s\n", n2);
 
     ShowAllGroupsInfo(group_head);
-
-    printf("\n\n\n");
 
     char v1_recv[30];
     char v2_recv[30];

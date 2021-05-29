@@ -92,11 +92,11 @@ bool findGroupAuthServer(char * g_name) {
 	}
 
 	if (ready_flag == -1) {
-		printf("Group name doesn't exist\n");
+		// printf("Group name doesn't exist\n");
 		return false;
 	}
 	else {
-		printf("Group found\n");
+		// printf("Group found\n");
 		return true;
 	}
 }
