@@ -7,11 +7,25 @@
 #include <sys/socket.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <arpa/inet.h>
 #include "appList.h"
 #include "groupList.h"
 
-int main()
-{
+// Server of Authentification Server
+struct sockaddr_in sv_addr_auth;
+// File descriptor for the connection to the AuthServer
+int sfd_auth;
+
+int main() {
+
+    sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sfd_auth == -1) {
+        printf("Client: Error in socket creation\n");
+        exit(-1);
+    }
+
+    sv_addr_auth.sin_family = AF_INET;
+    sv_addr_auth.sin_port = htons(58032);
 
     long pid1 = (long) pthread_self();
     long pid2 = (long) pthread_self()+1;
