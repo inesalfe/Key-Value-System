@@ -6,7 +6,7 @@
 #include "hash.h"
  
 #define CAPACITY 50000 // Size of the Hash Table
- 
+
 unsigned long hash_function(char * str) {
     unsigned long i = 0;
     for (int j=0; str[j]; j++)
@@ -99,7 +99,6 @@ static void free_overflow_buckets(HashTable * table) {
     free(buckets);
 }
  
- 
 Ht_item * create_item(char * key, char * value) {
     // Creates a pointer to a new hash table item
     Ht_item * item = (Ht_item *) malloc (sizeof(Ht_item));
@@ -114,7 +113,7 @@ Ht_item * create_item(char * key, char * value) {
  
 HashTable * create_table(int size) {
     // Creates a new HashTable
-    HashTable * table = (HashTable *) malloc (sizeof(HashTable));
+    HashTable * table = (HashTable *) calloc (1, sizeof(HashTable));
     table->size = size;
     table->count = 0;
     table->items = (Ht_item **) calloc (table->size, sizeof(Ht_item *));
@@ -132,14 +131,14 @@ void free_item(Ht_item * item) {
     free(item);
 }
  
-void free_table(HashTable* table) {
+void free_table(HashTable * table) {
     // Frees the table
     for (int i=0; i<table->size; i++) {
         Ht_item * item = table->items[i];
         if (item != NULL)
             free_item(item);
     }
- 
+
     free_overflow_buckets(table);
     free(table->items);
     free(table);
@@ -187,11 +186,15 @@ void ht_insert(HashTable * table, char * key, char * value) {
     }
  
     else {
-            // Scenario 1: We only need to update value
-            if (strcmp(current_item->key, key) == 0) {
-                strcpy(table->items[index]->value, value);
-                return;
-            }
+        // Scenario 1: We only need to update value
+        if (strcmp(current_item->key, key) == 0) {
+            free_item(current_item);
+            table->items[index] = item;
+            // free(table->items[index]->value);
+            // table->items[index]->value = (char *) malloc (strlen(value) + 1);
+            // strcpy(table->items[index]->value, value);
+            return;
+        }
      
         else {
             // Scenario 2: Collision
@@ -201,7 +204,7 @@ void ht_insert(HashTable * table, char * key, char * value) {
     }
 }
  
-char* ht_search(HashTable * table, char * key) {
+char * ht_search(HashTable * table, char * key) {
     // Searches the key in the hashtable
     // and returns NULL if it doesn't exist
     int index = hash_function(key);
@@ -244,7 +247,6 @@ void ht_delete(HashTable * table, char* key) {
             if (strcmp(item->key, key) == 0) {
                 // Remove this item and set the head of the list
                 // as the new item
-                 
                 free_item(item);
                 LinkedList * node = head;
                 head = head->next;

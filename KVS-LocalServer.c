@@ -17,8 +17,8 @@
 #define BACKLOG 5
 
 struct cl_info {
-    int file_descriptor;
-    long cl_pid;
+	int file_descriptor;
+	long cl_pid;
 };
 
 // Linked List of groups
@@ -65,7 +65,7 @@ int get_value (char * group_name, int * app_fd) {
 	int ready = 1;
 	int length = -1;
 	ssize_t numBytes;
-	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int), 0) {
+	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Server: Error in sending ready flag\n");
 		return -1;
 	}
@@ -78,7 +78,7 @@ int get_value (char * group_name, int * app_fd) {
 		strcpy(temp_value, getKeyValue(groups, group_name, temp_key));
 		length = strlen(temp_value);
 	}
-	if (send(*app_fd, &length, sizeof(int), 0) != sizeof(int), 0) {
+	if (send(*app_fd, &length, sizeof(int), 0) != sizeof(int)) {
 		printf("Server: Error in sending length\n");
 		return -1;
 	}
@@ -109,7 +109,7 @@ int delete_value (char * group_name, int * app_fd) {
 	}
 	if (findKeyValue(groups, group_name, temp_key))
 		check_key = 1;
-	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int), 0) {
+	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int)) {
 		printf("Server: Error in sending check_key\n");
 		return -1;
 	}
@@ -120,6 +120,7 @@ int delete_value (char * group_name, int * app_fd) {
 }
 
 int register_callback (int * app_fd) {
+	return 0;
 }
 
 void * thread_func(void * arg) {
@@ -170,7 +171,7 @@ void * thread_func(void * arg) {
 		error_flag = 0;
 
 	// Sending flag saying if group_id is correct or not
-	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int), 0) {
+	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
 		printf("Server: Error in sending flag for correct/incorrect group_id\n");
 		if (close(cfd) == -1) {
 			printf("Server: Error in closing socket file descriptor\n");
@@ -281,8 +282,8 @@ void * get_cmd_func(void * arg) {
 			  g_name[--len] = '\0';
 			}
 			if (CreateGroup(&groups, g_name) == NULL)
-        		printf("That group already exists!\n");
-        	else
+				printf("That group already exists!\n");
+			else
 				printf("Group created!\n");
 		}
 		else if (strcmp(str, "Delete group\n") == 0) {
@@ -293,9 +294,9 @@ void * get_cmd_func(void * arg) {
 			  g_name[--len] = '\0';
 			}
 			if (deleteGroup(&groups, g_name))
-        		printf("Group deleted!\n");
-        	else
-        		printf("Group not found!\n");
+				printf("Group deleted!\n");
+			else
+				printf("Group not found!\n");
 		}
 		else if (strcmp(str, "Show group info\n") == 0) {
 			printf("Insert group id:\n");
@@ -329,14 +330,14 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_un sv_addr;
 	int sfd;
 
-    sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sfd_auth == -1) {
-        printf("Client: Error in socket creation\n");
-        exit(-1);
-    }
+	sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sfd_auth == -1) {
+		printf("Client: Error in socket creation\n");
+		exit(-1);
+	}
 
-    sv_addr_auth.sin_family = AF_INET;
-    sv_addr_auth.sin_port = htons(58032);
+	sv_addr_auth.sin_family = AF_INET;
+	sv_addr_auth.sin_port = htons(58032);
 
 	// File descriptor assignment
 	sfd = socket(AF_UNIX, SOCK_STREAM, 0);

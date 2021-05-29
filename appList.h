@@ -9,7 +9,7 @@ struct App {
     int fd;
     struct timespec start;
     struct timespec stop;
-    struct App *next;
+    struct App * next;
 };
 
 // Prints all the information about all apps

@@ -106,13 +106,13 @@ void ShowAllGroupsInfo(struct Group * group)
 	while (group != NULL)
 	{	
 		printf("Name: %s\n", group->group_name);
-		char * secret_recv = (char *)malloc(BUF_SIZE*sizeof(char));
-		if (getSecret(group->group_name) != NULL) {
-			strncpy(secret_recv, getSecret(group->group_name), sizeof(getSecret(group->group_name)));
+		char * secret_recv = getSecret(group->group_name);
+		if (secret_recv != NULL) {
 			printf("Secret: %s\n", secret_recv);
 		}
 		printf("Number of key-value pairs: %d\n", group->table->count);
 		group = group->next;
+		free(secret_recv);
 	}
 }
 
@@ -123,12 +123,12 @@ bool ShowGroupInfo(struct Group * head, char * name)
 	{
 		if (strcmp(current->group_name, name) == 0) {
 			printf("Name: %s\n", current->group_name);
-			char * secret_recv = (char *)malloc(BUF_SIZE*sizeof(char));
-			if (getSecret(current->group_name) != NULL) {
-				strncpy(secret_recv, getSecret(current->group_name), sizeof(getSecret(current->group_name)));
+			char * secret_recv = getSecret(current->group_name);
+			if (secret_recv != NULL) {
 				printf("Secret: %s\n", secret_recv);
 			}
 			printf("Number of key-value pairs: %d\n", current->table->count);
+			free(secret_recv);
 			return true;
 		}
 		current = current->next;
@@ -204,11 +204,11 @@ void createGroupAuthServer(char * g_name, char * secret) {
 
 char * CreateGroup(struct Group ** head_ref, char * name) {
 
-	if(FindGroup(*head_ref, name) || findGroupAuthServer(name)) {
+	if(FindGroup(* head_ref, name) || findGroupAuthServer(name)) {
 		return NULL;
 	}
 
-	struct Group * new_node = (struct Group *) malloc(sizeof(struct Group));
+	struct Group * new_node = (struct Group *) calloc(1, sizeof(struct Group));
 	struct Group * last = * head_ref;
 
 	char * secret_temp = "123";
@@ -222,8 +222,8 @@ char * CreateGroup(struct Group ** head_ref, char * name) {
 
 	if (* head_ref == NULL)
 	{
-	   *head_ref = new_node;
-	   return secret_temp;
+		* head_ref = new_node;
+		return secret_temp;
 	}
 
 	while (last->next != NULL)
@@ -308,7 +308,7 @@ bool FindGroup(struct Group * head, char * name) {
 	while (current != NULL)
 	{
 		if (strcmp(current->group_name, name) == 0) {
-		   return true;
+			return true;
 		}
 		current = current->next;
 	}
@@ -336,12 +336,16 @@ bool addApp_toGroup(struct Group * head, char * name, char * secret, int cl_fd, 
 	while (current != NULL)
 	{
 		if (strcmp(current->group_name, name) == 0) {
-			if (strcmp(getSecret(current->group_name), secret) == 0) {
+			char * secret_recv = getSecret(current->group_name);
+			if (strcmp(secret_recv, secret) == 0) {
 				append_App(&current->apps, cl_fd, pid_in);
+				free(secret_recv);
 				return true;                
 			}
-			else
+			else {
+				free(secret_recv);
 				return false;
+			}
 		}
 		current = current->next;
 	}
@@ -399,6 +403,8 @@ bool deleteGroup(struct Group ** head_ref, char * name)
  
 	if (temp != NULL && (strcmp(temp->group_name, name)==0)) {
 		deleteGroupAuthServer(temp->group_name);
+		deleteAppList(&temp->apps);
+		free_table(temp->table);
 		* head_ref = temp->next;
 		free(temp);
 		return true;
@@ -406,6 +412,8 @@ bool deleteGroup(struct Group ** head_ref, char * name)
  
 	while (temp != NULL && (strcmp(temp->group_name, name)!=0)) {
 		deleteGroupAuthServer(temp->group_name);
+		deleteAppList(&temp->apps);
+		free_table(temp->table);
 		prev = temp;
 		temp = temp->next;
 	}
@@ -422,20 +430,20 @@ bool deleteGroup(struct Group ** head_ref, char * name)
 
 void deleteGroupList(struct Group ** head_ref) {
 
-   struct Group * current = * head_ref;
-   struct Group * next;
+	struct Group * current = * head_ref;
+	struct Group * next;
  
-   while (current != NULL)
-   {
-	   next = current->next;
-	   deleteGroupAuthServer(current->group_name);
-	   deleteAppList(&current->apps);
-	   free_table(current->table);
-	   free(current);
-	   current = next;
-   }
-   
-   * head_ref = NULL;
+	while (current != NULL)
+	{
+		next = current->next;
+		deleteGroupAuthServer(current->group_name);
+		deleteAppList(&current->apps);
+		free_table(current->table);
+		free(current);
+		current = next;
+	}
+	
+	* head_ref = NULL;
 }
 
 

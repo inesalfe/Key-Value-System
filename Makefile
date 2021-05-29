@@ -1,4 +1,4 @@
-CC=gcc -g
+CC=gcc -g -pthread
 
 all: KVS-LocalServer app1 app2 app3 main_group main_app KVS-AuthServer
 

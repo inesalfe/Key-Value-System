@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
 						exit(-1);
 					}
 					char temp_secret[BUF_SIZE];
-					strncpy(temp_secret, ht_search(table, g_name), sizeof(ht_search(table, g_name)));
+					strcpy(temp_secret, ht_search(table, g_name));
 					// Send secret
 					if (sendto(sfd, temp_secret, sizeof(temp_secret), 0, (struct sockaddr *) &claddr, sizeof(struct sockaddr_in)) != sizeof(temp_secret)) {
 						printf("Server: Error in sendto\n");

@@ -6,7 +6,7 @@ struct App {
     struct sockaddr_un cl_addr;
     struct timespec start;
     struct timespec stop;
-    struct App *next;
+    struct App * next;
 };
 
 #endif
