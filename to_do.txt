@@ -1,5 +1,3 @@
-PERGUNTAS PARA O PROF
-
 - Criar grupos - não se pode criar grupos que já existem noutros servidores
 - Show group info - só é permitido para grupos presentes no servidor local
 - Testar o "establish_connection".
@@ -11,6 +9,7 @@ PERGUNTAS PARA O PROF
 - VALGRIND
 - Uma aplicação pode-se ligar a dois grupos? - epa ya
 - Sincronização
+- Fechar Local Servers a partir do Auth server se se fizer quit no auth server
 
 URGENTE
 

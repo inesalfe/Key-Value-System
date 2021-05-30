@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #include "groupList.h"
 
 #define SV_SOCK_PATH "/tmp/server_sock"
@@ -36,21 +37,21 @@ int put_value (char * group_name, int * app_fd, int * pid) {
 	ssize_t numBytes;
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
-		return -1;
+		return -2;
 	}
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
-		return -1;
+		return -2;
 	}
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
-		return -1;
+		return -2;
 	}
 	numBytes = recv(*app_fd, temp_value, sizeof(temp_value), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading value\n");
-		return -1;
+		return -2;
 	}
 	if (AddKeyValueToGroup(groups, group_name, *pid, temp_key, temp_value))
 		return 1;
@@ -66,12 +67,12 @@ int get_value (char * group_name, int * app_fd) {
 	ssize_t numBytes;
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
-		return -1;
+		return -2;
 	}
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
-		return -1;
+		return -2;
 	}
 	char * temp_value = GetKeyValueLocalServer(groups, group_name, temp_key);
 	if (temp_value != NULL) {
@@ -79,13 +80,13 @@ int get_value (char * group_name, int * app_fd) {
 	}
 	if (send(*app_fd, &length, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending length\n");
-		return -1;
+		return -2;
 	}
 	if (length == -1)
 		return -1;
 	if (send(*app_fd, temp_value, (length+1)*sizeof(char), 0) != (length+1)*sizeof(char)) {
 		printf("Local Server: Error in sending value pointer\n");
-		return -1;
+		return -2;
 	}
 	return 1;
 }
@@ -98,18 +99,18 @@ int delete_value (char * group_name, int * app_fd) {
 	ssize_t numBytes;
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
-		return -1;
+		return -2;
 	}
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
-		return -1;
+		return -2;
 	}
 	if (FindKeyValueLocalServer(groups, group_name, temp_key))
 		check_key = 1;
 	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending check_key\n");
-		return -1;
+		return -2;
 	}
 	if (check_key == -1)
 		return -1;
@@ -226,21 +227,33 @@ void * thread_func(void * arg) {
 		sucess_flag = -1;
 		if (func_code == 0) {
 			sucess_flag = put_value(group_id_app, &cfd, &pid);
-			if (sucess_flag == -1)
+			if (sucess_flag == -2) {
+				printf("Fatal communication error in 'put_value' operation\n");
+				pthread_exit(NULL);
+			}
+			else if (sucess_flag == -1)
 				printf("Error in 'put_value' operation\n");
 			else
 				printf("Successful 'put_value' operation\n");
 		}
 		else if (func_code == 1) {
 			sucess_flag = get_value(group_id_app, &cfd);
-			if (sucess_flag == -1)
+			if (sucess_flag == -2) {
+				printf("Fatal communication error in 'get_value' operation\n");
+				pthread_exit(NULL);
+			}
+			else if (sucess_flag == -1)
 				printf("Error in 'get_value' operation\n");
 			else
 				printf("Successful 'get_value' operation\n");
 		}
 		else if (func_code == 2) {
 			sucess_flag = delete_value(group_id_app, &cfd);
-			if (sucess_flag == -1)
+			if (sucess_flag == -2) {
+				printf("Fatal communication error in 'delete_value' operation\n");
+				pthread_exit(NULL);
+			}
+			else if (sucess_flag == -1)
 				printf("Error in 'delete_value' operation\n");
 			else
 				printf("Successful 'delete_value' operation\n");
@@ -250,7 +263,11 @@ void * thread_func(void * arg) {
 		else {
 			if (CloseApp(&groups, group_id_app, pid))
 				sucess_flag = 1;
-			if (sucess_flag == -1)
+			if (sucess_flag == -2) {
+				printf("Fatal communication error in 'close_connection' operation\n");
+				pthread_exit(NULL);
+			}
+			else if (sucess_flag == -1)
 				printf("Error in 'close_connection' operation\n");
 			else
 				printf("Successful 'close_connection' operation\n");
@@ -306,6 +323,8 @@ void * handle_apps(void * arg) {
 }
 
 int main(int argc, char *argv[]) {
+
+	signal(SIGPIPE, SIG_IGN);
 
 	sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sfd_auth == -1) {
