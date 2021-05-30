@@ -1,33 +1,22 @@
-KVS-lib.c
+PERGUNTAS PARA O PROF
 
-- Testar o "establish_connection" para os vários tipos de erro.
-- Testar o "put_value" para os vários tipos de erro.
-- No "get_value" como é que se sabe se a operação foi um sucesso? So se se receber primeiro o comprimento da string que é supsto receber.
-- Testar o "delete_value" para os vários tipos de erro.
-- Fazer o "register_callback" mais para o fim.
+- Criar grupos - não se pode criar grupos que já existem noutros servidores
+- Show group info - só é permitido para grupos presentes no servidor local
+- Testar o "establish_connection".
+- Testar o "put_value".
+- Tetar "get_value".
+- Testar o "delete_value".
+- Fazer o "register_callback".
+- Imprimir comando no Auth Server
+- VALGRIND
+- Uma aplicação pode-se ligar a dois grupos? - epa ya
+- Sincronização
 
-groupList.c
+URGENTE
 
-- Como é que devo gerar o segredo?
-
-KVS-LocalServer.c
-
-- Register callback
-- O get values da app1 às vezes fica preso no recv function code. 
-- Quando o utilizador coloca 'q', a thread que lê os comandos do teclado acaba mas as outras continuam. Como é q forço o programa a acabar quando aquela thread acaba?
-- Quando acaba, fechar o file descriptor com o auth server
+- Cena bloqueante estúpida
+- Lidar com o AuthServer? - várias conexões com servidores
+- Gerar o segredo - pode ser só uma string aleatória?
 - Print secret quando se cria o grupo
-
-KVS-AuthServer.c
-
-- Será que um servidor pode pedir o segredo de um grupo que não lhe pertence?
-- Será que um servidor pode criar um grupo que já existe noutro servidor?
+- Quando o utilizador coloca 'q', a thread que lê os comandos do teclado acaba mas as outras continuam. Como é q forço o programa a acabar quando aquela thread acaba? Mesmo se conseguir parar as outras threads, o programa fica preso no accept dentro do for, por isso também não posso usar uma variável global.
 - Fechar ligações
-
-TODO O LADO
-
-Testar isto tudo com o valgrind. De certeza que há free's a menos.
-
-COISAS A DECIDIR
-
-Uma aplicação pode-se ligar a dois grupos?

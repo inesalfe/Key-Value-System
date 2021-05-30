@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
     flag = put_value(key1, value1);
     printf("%d\n", flag);
 
-    printf("Before calling function\n");
+    // printf("Before calling function\n");
 
     flag = get_value(key1, &value2);
     printf("%d\n", flag);

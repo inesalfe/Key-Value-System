@@ -194,7 +194,7 @@ int put_value (char * key, char * value) {
 
 int get_value (char * key, char ** value) {
 
-    // printf("Begin\n");
+    // printf("Begin 'get_value'\n");
 
     if (cfd == -1) {
         printf("App: Error in socket creation / Socket not created\n");
@@ -202,8 +202,6 @@ int get_value (char * key, char ** value) {
     }
 
     int func_code = 1;
-
-    // printf("App: Before send function code\n");
 
     // Send the function name to the server
     if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {

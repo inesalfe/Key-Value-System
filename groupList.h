@@ -53,13 +53,13 @@ bool AddAppToGroup(struct Group * head, char * name, char * secret, int cl_fd, i
 // Given the name of the group, the file descriptor of the app and the key-values pair to be inserted
 // It returns true in case of success and false otherwise
 // This function is called when the function "put_value" of the app is called
-bool AddKeyValueToGroup(struct Group * head, char * name, int cl_fd, char * key, char * value);
+bool AddKeyValueToGroup(struct Group * head, char * name, int pid, char * key, char * value);
 
 // Given the name of the group and the file descriptor of the app
 // This function closes the corresponding app of the corresponding group
 // It returns true in case of success and false otherwise
 // This function is called when the function "close_connection" of the app is called
-bool CloseApp(struct Group ** head_ref, char * name, int cl_fd);
+bool CloseApp(struct Group ** head_ref, char * name, int pid);
 
 // Given the name of the group and a key, this function deletes the entry in the Hashtable corresponding to a certain key
 // It return true is the key is correctly deleted and false otherwise
@@ -76,6 +76,9 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name);
 
 // Delest all groups in the Local Server in both the Local and Authentification Server
 int DeleteGroupList(struct Group**  head_ref);
+
+// Close all file descriptors of still connected apps before exiting the program+
+void CloseAllFileDesc(struct Group**  head_ref);
 
 // Function that prints information about all groups
 // This is still not used

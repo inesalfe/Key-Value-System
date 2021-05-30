@@ -22,15 +22,13 @@ struct cl_info {
 };
 
 // Linked List of groups
-struct Group * groups;
+struct Group * groups = NULL;
 // Server of Authentification Server
 struct sockaddr_in sv_addr_auth;
 // File descriptor for the connection to the AuthServer
 int sfd_auth;
 
-// int exit_flag = 0;
-
-int put_value (char * group_name, int * app_fd) {
+int put_value (char * group_name, int * app_fd, int * pid) {
 
 	char temp_key[BUF_SIZE];
 	char temp_value[BUF_SIZE];
@@ -54,7 +52,7 @@ int put_value (char * group_name, int * app_fd) {
 		printf("Local Server: Error in reading value\n");
 		return -1;
 	}
-	if (AddKeyValueToGroup(groups, group_name, *app_fd, temp_key, temp_value))
+	if (AddKeyValueToGroup(groups, group_name, *pid, temp_key, temp_value))
 		return 1;
 	else
 		return 0;
@@ -63,7 +61,6 @@ int put_value (char * group_name, int * app_fd) {
 int get_value (char * group_name, int * app_fd) {
 
 	char temp_key[BUF_SIZE];
-	// char temp_value[BUF_SIZE];
 	int ready = 1;
 	int length = -1;
 	ssize_t numBytes;
@@ -96,7 +93,6 @@ int get_value (char * group_name, int * app_fd) {
 int delete_value (char * group_name, int * app_fd) {
 
 	char temp_key[BUF_SIZE];
-	char temp_value[BUF_SIZE];
 	int ready = 1;
 	int check_key = -1;
 	ssize_t numBytes;
@@ -224,14 +220,12 @@ void * thread_func(void * arg) {
 	// Variable with a code saying which function the app wants to execute
 	int func_code = -1;
 	while(1) {
-		// printf("Before receive func_code\n");
 		numBytes = recv(cfd, &func_code, sizeof(int), 0);
-		// printf("After receive func_code\n");
 		if (numBytes < 0)
 			break;
 		sucess_flag = -1;
 		if (func_code == 0) {
-			sucess_flag = put_value(group_id_app, &cfd);
+			sucess_flag = put_value(group_id_app, &cfd, &pid);
 			if (sucess_flag == -1)
 				printf("Error in 'put_value' operation\n");
 			else
@@ -254,7 +248,7 @@ void * thread_func(void * arg) {
 		else if (func_code == 3)
 			register_callback(&cfd);
 		else {
-			if (CloseApp(&groups, group_id_app, cfd))
+			if (CloseApp(&groups, group_id_app, pid))
 				sucess_flag = 1;
 			if (sucess_flag == -1)
 				printf("Error in 'close_connection' operation\n");
@@ -267,11 +261,80 @@ void * thread_func(void * arg) {
 	pthread_exit(NULL);
 }
 
-void * get_cmd_func(void * arg) {
+// Definition of the socket address and file descriptor
+struct sockaddr_un sv_addr;
+int sfd_main;
+
+void * handle_apps(void * arg) {
+
+	// File descriptor assignment
+	sfd_main = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (sfd_main == -1)
+		printf("Local Server: Error in socket creation\n");
+
+	// Clean socket path
+	remove(SV_SOCK_PATH);
+
+	// Bind
+	sv_addr.sun_family = AF_UNIX;
+	strncpy(sv_addr.sun_path, SV_SOCK_PATH, sizeof(sv_addr.sun_path) - 1);
+
+	if (bind(sfd_main, (struct sockaddr *) &sv_addr, sizeof(struct sockaddr_un)) == -1)
+		printf("Local Server: Error in binding\n");
+
+	// Listen
+	if (listen(sfd_main, BACKLOG) == 1)
+		printf("Local Server: Error in listening\n");
+
+	struct sockaddr_un app_addr;
+	socklen_t len = sizeof(struct sockaddr_un);
+
+	// Creation of threads that will handle the apps
+	for (;;) {
+		struct cl_info temp_info;
+		temp_info.file_descriptor = accept(sfd_main, (struct sockaddr *) &app_addr, &len);
+		temp_info.cl_pid = atol(app_addr.sun_path + strlen("/tmp/app_socket_"));
+		if (temp_info.file_descriptor == -1) {
+			printf("Local Server: Error in accepting\n");
+			pthread_exit(NULL);
+		}
+		pthread_t t_id;
+		pthread_create(&t_id, NULL, thread_func, &temp_info);
+	}
+
+	pthread_exit(NULL);
+}
+
+int main(int argc, char *argv[]) {
+
+	sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sfd_auth == -1) {
+		printf("Local Server: Error in socket creation\n");
+		exit(-1);
+	}
+
+	sv_addr_auth.sin_family = AF_INET;
+	sv_addr_auth.sin_port = htons(58032);
+
+	char str_connect[BUF_SIZE] = "Connect";
+	if (sendto(sfd_auth, str_connect, sizeof(str_connect), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(str_connect)) {
+		printf("Local Server: Error in sendto\n");
+		exit(-1);
+	}
+	int port_number = -1;
+	if (recvfrom(sfd_auth, &port_number, sizeof(port_number), 0, NULL, NULL) == -1) {
+		printf("Local Server: Error in recvfrom\n");
+		exit(-1);
+	}
+	printf("Port Number: %d\n", port_number);
+	sv_addr_auth.sin_port = htons(port_number);
+
+	// Creation of thread that will execute the commands
+	pthread_t t_id_apps;
+	pthread_create(&t_id_apps, NULL, handle_apps, NULL);
 
 	char str[BUF_SIZE];
 	char g_name[BUF_SIZE];
-	bool flag;
 	size_t len;
 	while (1) {
 		fgets(str, sizeof(str), stdin);
@@ -282,9 +345,7 @@ void * get_cmd_func(void * arg) {
 			if (len > 0 && g_name[len-1] == '\n') {
 			  g_name[--len] = '\0';
 			}
-			if (CreateGroupLocalServer(&groups, g_name) == NULL)
-				printf("That group already exists!\n");
-			else
+			if (CreateGroupLocalServer(&groups, g_name) != NULL)
 				printf("Group created!\n");
 		}
 		else if (strcmp(str, "Delete group\n") == 0) {
@@ -296,8 +357,6 @@ void * get_cmd_func(void * arg) {
 			}
 			if (DeleteGroupLocalServer(&groups, g_name))
 				printf("Group deleted!\n");
-			else
-				printf("Group not found!\n");
 		}
 		else if (strcmp(str, "Show group info\n") == 0) {
 			printf("Insert group id:\n");
@@ -306,87 +365,42 @@ void * get_cmd_func(void * arg) {
 			if (len > 0 && g_name[len-1] == '\n') {
 			  g_name[--len] = '\0';
 			}
-			flag = ShowGroupInfo(groups, g_name);
-			if (flag == false)
+			if (ShowGroupInfo(groups, g_name) == false)
 				printf("Group not found!\n");
 		}
 		else if (strcmp(str, "Show application status\n") == 0) {
 			ShowAppStatus(groups);
 		}
-		else if (strcmp(str, "q\n") == 0) {
-			printf("Exiting server...\n");
-			// exit_flag = 1;
+		else if (strcmp(str, "Quit\n") == 0) {
 			break;
 		}
 		else
-			printf("Unknown command\n");
+			printf("Unknown Command\n");
 	}
 
-	pthread_exit(NULL);
-}
+	if (close(sfd_main) == -1) {
+		printf("Local Server: Error in closing socket\n");
+	}
 
-int main(int argc, char *argv[]) {
+	CloseAllFileDesc(&groups);
 
-	// Definition of the socket address and file descriptor
-	struct sockaddr_un sv_addr;
-	int sfd;
+	if (DeleteGroupList(&groups) == -1)
+		printf("Error in deleting the group list\n");
 
-	sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sfd_auth == -1) {
-		printf("Local Server: Error in socket creation\n");
+	char cmd[BUF_SIZE] = "CloseConnection";
+	if (sendto(sfd_auth, cmd, sizeof(cmd), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(cmd)) {
+		printf("Server: Error in sendto\n");
 		exit(-1);
 	}
 
-	sv_addr_auth.sin_family = AF_INET;
-	sv_addr_auth.sin_port = htons(58032);
-
-	// File descriptor assignment
-	sfd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (sfd == -1)
-		printf("Local Server: Error in socket creation\n");
-
-	// Clean socket path
-	remove(SV_SOCK_PATH);
-
-	// Bind
-	sv_addr.sun_family = AF_UNIX;
-	strncpy(sv_addr.sun_path, SV_SOCK_PATH, sizeof(sv_addr.sun_path) - 1);
-
-	if (bind(sfd, (struct sockaddr *) &sv_addr, sizeof(struct sockaddr_un)) == -1)
-		printf("Local Server: Error in binding\n");
-
-	// Listen
-	if (listen(sfd, BACKLOG) == 1)
-		printf("Local Server: Error in listening\n");
-
-	struct sockaddr_un app_addr;
-	socklen_t len = sizeof(struct sockaddr_un);
-
-	groups = NULL;
-
-	// Creation of thread that will execute the commands
-	pthread_t t_id_cmd;
-	pthread_create(&t_id_cmd, NULL, get_cmd_func, NULL);
-
-	// Creation of threads that will handle the apps
-	for (;;) {
-		// if (exit_flag = 1)
-		// 	break;
-		struct cl_info temp_info;
-		temp_info.file_descriptor = accept(sfd, (struct sockaddr *) &app_addr, &len);
-		temp_info.cl_pid = atol(app_addr.sun_path + strlen("/tmp/app_socket_"));
-		if (temp_info.file_descriptor == -1)
-			printf("Local Server: Error in accepting\n");
-		pthread_t t_id;
-		pthread_create(&t_id, NULL, thread_func, &temp_info);
-	}
-
 	if (close(sfd_auth) == -1) {
-		printf("Local Error in closing socket\n");
+		printf("Local Server: Error in closing socket\n");
 		exit(-1);
 	}
 
 	remove(sv_addr.sun_path);
+
+	printf("Exiting Local Server...\n");
 
 	return 0;
 
