@@ -1,39 +1,42 @@
-CC=gcc -g -pthread
+CC=gcc -g -pthread -I./include
 
-all: KVS-LocalServer app1 app2 app3 main_group main_app KVS-AuthServer
+all: bin/KVS-LocalServer bin/app1 bin/app2 bin/app3 bin/app bin/main_group bin/main_app bin/KVS-AuthServer
 
-KVS-LocalServer: appList.o hash.o groupList.o KVS-LocalServer.c
-	$(CC) KVS-LocalServer.c -o KVS-LocalServer appList.o groupList.o hash.o
+bin/KVS-LocalServer: bin/appList.o bin/hash.o bin/groupList.o KVS-LocalServer.c
+	$(CC) KVS-LocalServer.c -o bin/KVS-LocalServer bin/appList.o bin/groupList.o bin/hash.o
 
-KVS-AuthServer: KVS-AuthServer.c hash.o
-	$(CC) KVS-AuthServer.c -o KVS-AuthServer hash.o
+bin/KVS-AuthServer: KVS-AuthServer.c bin/hash.o
+	$(CC) KVS-AuthServer.c -o bin/KVS-AuthServer bin/hash.o
 
-app1: KVS-lib.o app1.c
-	$(CC) app1.c -o app1 KVS-lib.o
+bin/app: bin/KVS-lib.o app.c
+	$(CC) app.c -o bin/app bin/KVS-lib.o
 
-app2: KVS-lib.o app2.c
-	$(CC) app2.c -o app2 KVS-lib.o
+bin/app1: bin/KVS-lib.o TestFiles/app1.c
+	$(CC) TestFiles/app1.c -o bin/app1 bin/KVS-lib.o
 
-app3: app3.c
-	$(CC) app3.c -o app3
+bin/app2: bin/KVS-lib.o TestFiles/app2.c
+	$(CC) TestFiles/app2.c -o bin/app2 bin/KVS-lib.o
 
-KVS-lib.o: KVS-lib.c KVS-lib.h
-	$(CC) -c KVS-lib.c
+bin/app3: src/app3.c
+	$(CC) TestFiles/app3.c -o bin/app3
 
-hash.o: hash.c hash.h
-	$(CC) -c hash.c
+bin/KVS-lib.o: src/KVS-lib.c src/KVS-lib.h
+	$(CC) -c src/KVS-lib.c
 
-main_group: appList.o hash.o groupList.o main_group.c
-	$(CC) main_group.c -o main_group appList.o hash.o groupList.o
+bin/hash.o: src/hash.c src/hash.h
+	$(CC) -c src/hash.c
 
-groupList.o: groupList.c groupList.h
-	$(CC) -c groupList.c
+bin/main_group: bin/appList.o bin/hash.o bin/groupList.o TestFiles/main_group.c
+	$(CC) TestFiles/main_group.c -o bin/main_group bin/appList.o bin/hash.o bin/groupList.o
 
-main_app: appList.o main_app.c
-	$(CC) main_app.c -o main_app appList.o
+bin/groupList.o: src/groupList.c src/groupList.h
+	$(CC) -c src/groupList.c
 
-appList.o: appList.c appList.h
-	$(CC) -c appList.c
+bin/main_app: bin/appList.o TestFiles/main_app.c
+	$(CC) TestFiles/main_app.c -o bin/main_app bin/appList.o
+
+bin/appList.o: src/appList.c src/appList.h
+	$(CC) -c src/appList.c
 
 clean:
-	rm -f *.o core a.out proj *~
+	rm -f bin/* *~

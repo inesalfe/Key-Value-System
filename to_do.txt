@@ -6,16 +6,15 @@
 - Testar o "delete_value".
 - Fazer o "register_callback".
 - Imprimir comando no Auth Server
-- VALGRIND
 - Uma aplicação pode-se ligar a dois grupos? - epa ya
-- Sincronização
 - Fechar Local Servers a partir do Auth server se se fizer quit no auth server
+- Lidar com o AuthServer? - várias conexões com servidores
+- Fechar ligações
 
 URGENTE
 
 - Cena bloqueante estúpida
-- Lidar com o AuthServer? - várias conexões com servidores
-- Gerar o segredo - pode ser só uma string aleatória?
+- Gerar o segredo - pode ser só uma string aleatória? E criar novos ficheiros de teste para se poder inserir o segredo através do teclado
 - Print secret quando se cria o grupo
-- Quando o utilizador coloca 'q', a thread que lê os comandos do teclado acaba mas as outras continuam. Como é q forço o programa a acabar quando aquela thread acaba? Mesmo se conseguir parar as outras threads, o programa fica preso no accept dentro do for, por isso também não posso usar uma variável global.
-- Fechar ligações
+- Sincronização
+- VALGRIND
