@@ -81,12 +81,17 @@ bool CloseConnection(struct App * head, int pid)
 	while (current != NULL)
 	{
 		if (current->pid == pid) {
-			clock_gettime(CLOCK_REALTIME, &current->stop);
-			current->delta_t = (current->stop.tv_sec - current->start.tv_sec) + (double) (current->stop.tv_nsec - current->start.tv_nsec) / 1.0e9;
-			if (close(current->fd) == -1) {
-				printf("Local Server: Error in closing socket\n");
+			if (current->isClosed == false) {
+				clock_gettime(CLOCK_REALTIME, &current->stop);
+				current->delta_t = (current->stop.tv_sec - current->start.tv_sec) + (double) (current->stop.tv_nsec - current->start.tv_nsec) / 1.0e9;
+				if (close(current->fd) == -1) {
+					printf("Local Server: Error in closing socket\n");
+				}
+				if (close(current->fd_cb) == -1) {
+					printf("Local Server: Error in closing socket\n");
+				}
+				current->isClosed = true;
 			}
-			current->isClosed = true;
 			return true;
 		}
 		current = current->next;
@@ -106,6 +111,9 @@ void CloseFileDesc(struct App** head_ref) {
 			clock_gettime(CLOCK_REALTIME, &current->stop);
 			current->delta_t = (current->stop.tv_sec - current->start.tv_sec) + (double) (current->stop.tv_nsec - current->start.tv_nsec) / 1.0e9;
 			if (close(current->fd) == -1) {
+				printf("Local Server: Error in closing socket\n");
+			}
+			if (close(current->fd_cb) == -1) {
 				printf("Local Server: Error in closing socket\n");
 			}
 			current->isClosed = true;

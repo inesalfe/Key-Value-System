@@ -30,6 +30,52 @@ struct thread_args {
 
 struct thread_args * cb_info = NULL;
 
+int close_connection() {
+
+	int func_code = 4;
+	ssize_t numBytes;
+
+	struct thread_args * current = cb_info;
+	struct thread_args * next;
+
+	while (current != NULL)
+	{
+		next = current->next;
+		free(current);
+		current = next;
+	}
+
+	cb_info = NULL;
+
+	if (cfd == -1) {
+		printf("App: Error in socket creation / Socket not created\n");
+		return -2;
+	}
+
+	if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
+		printf("App: Error in sending function code\n");
+		return -3;
+	}
+
+	pthread_cancel(callback_pid);
+
+	if (close(cfd) == -1) {
+		printf("App: Error in closing socket\n");
+		return -1;
+	}
+
+	if (close(cfd_cb) == -1) {
+		printf("App: Error in closing socket\n");
+		return -1;
+	}
+
+	remove(cl_addr.sun_path);
+	remove(cl_addr_cb.sun_path);
+
+	return 1;
+
+}
+
 void * callback_thread(void * arg) {
 
 	if (pthread_detach(pthread_self()) != 0) {
@@ -37,29 +83,70 @@ void * callback_thread(void * arg) {
 	}
 
 	size_t numBytes;
+	int flag = 0;
+	int ready_flag = 1;
 	char changed_key[BUF_SIZE];
 	while(1) {
-		numBytes = recv(cfd_cb, changed_key, sizeof(changed_key), 0);
+		numBytes = recv(cfd_cb, &flag, sizeof(int), 0);
 		if (numBytes == -1) {
-			printf("App: Error in receaving changed flag\n");
+			printf("App: Error in receiving flag\n");
 			break;
 		}
-		struct thread_args * current = cb_info;
-		while (current != NULL)
-		{
-			if (strcmp(current->key, changed_key) == 0) {
-				current->cb(changed_key);
+		if (flag == 1) {
+			if (send(cfd, &ready_flag, sizeof(int), 0) != sizeof(int)) {
+				printf("App: Error in sending ready flag\n");
+				break;
 			}
-			current = current->next;
+			numBytes = recv(cfd_cb, changed_key, sizeof(changed_key), 0);
+			if (numBytes == -1) {
+				printf("App: Error in receiving changed flag\n");
+				break;
+			}
+			struct thread_args * current = cb_info;
+			while (current != NULL)
+			{
+				if (strcmp(current->key, changed_key) == 0) {
+					current->cb(changed_key);
+				}
+				current = current->next;
+			}
+			memset(changed_key, 0, sizeof(changed_key));
 		}
-		memset(changed_key, 0, sizeof(changed_key));
+		else if (flag == -1) {
+			printf("Received flag for deleted group in server\n");
+			struct thread_args * current = cb_info;
+			struct thread_args * next;
+			while (current != NULL)
+			{
+				next = current->next;
+				free(current);
+				current = next;
+			}
+			cb_info = NULL;
+			if (close(cfd) == -1) {
+				printf("App: Error in closing socket\n");
+				break;
+			}
+			if (close(cfd_cb) == -1) {
+				printf("App: Error in closing socket\n");
+				break;
+			}
+			remove(cl_addr.sun_path);
+			remove(cl_addr_cb.sun_path);
+			exit(0);
+		}
+		flag = 0;
 	}
-
 	pthread_exit(NULL);
 }
 
 // Needs testing for different errors and use of sterror
 int establish_connection (char * group_id, char * secret) {
+
+	if (cfd != -1) {
+		printf("App: Error - Connection already established\n");
+		return -16;
+	}
 
 	// Assignment of server address
 	cfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -98,7 +185,7 @@ int establish_connection (char * group_id, char * secret) {
 	// Wait for flag saying that the connectiong was established
 	numBytes = recv(cfd, &check_connection, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving response for the established connection\n");
+		printf("App: Error in receiving response for the established connection\n");
 		return -13;
 	}
 
@@ -118,10 +205,10 @@ int establish_connection (char * group_id, char * secret) {
 		return -6;
 	}
 
-	// Receaving flag saying if the group_id is correct
+	// receiving flag saying if the group_id is correct
 	numBytes = recv(cfd, &check_group, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving response for the sent key / group_id / secret\n");
+		printf("App: Error in receiving response for the sent key / group_id / secret\n");
 		return -8;
 	}
 
@@ -183,7 +270,7 @@ int establish_connection (char * group_id, char * secret) {
 	// Wait for flag saying that the connectiong was established
 	numBytes = recv(cfd_cb, &check_connection, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving response for the established connection\n");
+		printf("App: Error in receiving response for the established connection\n");
 		return -13;
 	}
 
@@ -197,10 +284,10 @@ int establish_connection (char * group_id, char * secret) {
 		return -14;
 	}
 
-	// Receaving flag for the secret
+	// receiving flag for the secret
 	numBytes = recv(cfd, &check_secret, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving response for the sent key / group_id / secret\n");
+		printf("App: Error in receiving response for the sent key / group_id / secret\n");
 		return -8;
 	}
 	if (check_secret != 1) {
@@ -239,7 +326,7 @@ int put_value (char * key, char * value) {
 	// See if server is ready to send the key
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving ready flag\n");
+		printf("App: Error in receiving ready flag\n");
 		return -4;
 	}
 
@@ -260,7 +347,7 @@ int put_value (char * key, char * value) {
 	// See if server is ready to send the key
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving ready flag\n");
+		printf("App: Error in receiving ready flag\n");
 		return -4;
 	}
 
@@ -301,7 +388,7 @@ int get_value (char * key, char ** value) {
 	// See if server is ready to send the key
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving ready flag\n");
+		printf("App: Error in receiving ready flag\n");
 		return -4;
 	}
 
@@ -319,7 +406,7 @@ int get_value (char * key, char ** value) {
 	// See if server is ready to send the key
 	numBytes = recv(cfd, &length, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving ready flag\n");
+		printf("App: Error in receiving ready flag\n");
 		return -4;
 	}
 
@@ -332,7 +419,7 @@ int get_value (char * key, char ** value) {
 
 	numBytes = recv(cfd, *value, (length+1)*sizeof(char), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving values\n");
+		printf("App: Error in receiving values\n");
 		return -10;
 	}
 
@@ -362,7 +449,7 @@ int delete_value (char * key) {
 	// See if server is ready to receive the key
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving ready flag\n");
+		printf("App: Error in receiving ready flag\n");
 		return -4;
 	}
 
@@ -380,7 +467,7 @@ int delete_value (char * key) {
 	// Receive flag saying if the key is an existing one or not
 	numBytes = recv(cfd, &check_key, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving response for the sent key / group_id / secret\n");
+		printf("App: Error in receiving response for the sent key / group_id / secret\n");
 		return -8;
 	}
 
@@ -436,7 +523,7 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 	// See if server is ready to receive the key
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving ready flag\n");
+		printf("App: Error in receiving ready flag\n");
 		return -4;
 	}
 
@@ -454,7 +541,7 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 	// Receive flag saying if the key is an existing one or not
 	numBytes = recv(cfd, &check_key, sizeof(int), 0);
 	if (numBytes == -1) {
-		printf("App: Error in receaving response for the sent key / group_id / secret\n");
+		printf("App: Error in receiving response for the sent key / group_id / secret\n");
 		return -8;
 	}
 
@@ -496,67 +583,23 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 
 }
 
-int close_connection() {
-
-	int func_code = 4;
-	ssize_t numBytes;
-
-	struct thread_args * current = cb_info;
-	struct thread_args * next;
-
-	while (current != NULL)
-	{
-		next = current->next;
-		free(current);
-		current = next;
-	}
-
-	cb_info = NULL;
-
-	if (cfd == -1) {
-		printf("App: Error in socket creation / Socket not created\n");
-		return -2;
-	}
-
-	if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
-		printf("App: Error in sending function code\n");
-		return -3;
-	}
-
-	pthread_cancel(callback_pid);
-
-	if (close(cfd) == -1) {
-		printf("App: Error in closing socket\n");
-		return -1;
-	}
-
-	if (close(cfd_cb) == -1) {
-		printf("App: Error in closing socket\n");
-		return -1;
-	}
-
-	remove(cl_addr.sun_path);
-
-	return 1;
-
-}
-
-/* Códigos e erros (-1 a -15)
+/* Códigos e erros (-1 a -16)
 
 printf("App: Error in closing socket\n");
 printf("App: Error in socket creation / Socket not created\n");
 printf("App: Error in sending function code\n");
-printf("App: Error in receaving ready flag\n");
+printf("App: Error in receiving ready flag\n");
 printf("App: Server not ready\n");
 printf("App: Error in sending key / group_id / value / secret\n");
 printf("App: Key / group_id not existing\n");
-printf("App: Error in receaving response for the sent key / group_id / secret\n");
+printf("App: Error in receiving response for the sent key / group_id / secret\n");
 printf("App: Incorrect secret\n");
-printf("App: Error in receaving values\n");
+printf("App: Error in receiving values\n");
 printf("App: Error in binding\n");
 printf("App: Error in connect\n");
-printf("App: Error in receaving response for the established connection\n");
+printf("App: Error in receiving response for the established connection\n");
 printf("App: Error in establishing connection to the server\n");
 printf("App: Other error\n");
+printf("App: Error - Connection already established\n");
 
 */

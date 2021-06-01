@@ -14,7 +14,7 @@ int cfd = -1;
 struct sockaddr_un cl_addr;
 struct sockaddr_un sv_addr;
 pthread_t callback_pid;
-int cfd_cb;
+int cfd_cb = -1;
 struct sockaddr_un cl_addr_cb;
 struct sockaddr_un sv_addr_cb;
 

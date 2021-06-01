@@ -57,6 +57,21 @@ int put_value (char * group_name, int * app_fd, int * fd_callback, int * pid) {
 		return -2;
 	}
 	if (FindKeyValueLocalServer(groups, group_name, temp_key) && IsWatchListOfGroup(groups, group_name, temp_key)) {
+		int flag = 1;
+		if (send(*fd_callback, &flag, sizeof(int), 0) != sizeof(int)) {
+			printf("Local Server: Error in sending flag\n");
+			return -2;
+		}
+		flag = -1;
+		numBytes = recv(*fd_callback, &flag, sizeof(int), 0);
+		if (numBytes == -1) {
+			printf("Local Server: Error in reading flag\n");
+			return -2;
+		}
+		if (flag == -1) {
+			printf("Local Server: Error in receiving ready flag");
+			return -2;
+		}
 		if (send(*fd_callback, temp_key, sizeof(temp_key), 0) != sizeof(temp_key)) {
 			printf("Local Server: Error in sending changed key\n");
 			return -2;
@@ -373,7 +388,7 @@ void * thread_func(void * arg) {
 				printf("Successful 'register_callback' operation\n");
 			pthread_mutex_unlock(&mtx);
 		}
-		else {
+		else if (func_code == 4) {
 			pthread_mutex_lock(&mtx);
 			if (CloseApp(&groups, group_id_app, pid))
 				sucess_flag = 1;
@@ -533,12 +548,12 @@ int main(int argc, char *argv[]) {
 		printf("Local Server: Error in closing socket\n");
 	}
 
-	CloseAllFileDesc(&groups);
-
 	pthread_mutex_lock(&mtx);
 	if (DeleteGroupList(&groups) == -1)
 		printf("Error in deleting the group list\n");
 	pthread_mutex_unlock(&mtx);
+
+	// CloseAllFileDesc(&groups);
 
 	char cmd[BUF_SIZE] = "CloseConnection";
 	if (sendto(sfd_auth, cmd, sizeof(cmd), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(cmd)) {
