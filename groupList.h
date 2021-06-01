@@ -48,7 +48,9 @@ char * GetKeyValueLocalServer(struct Group * head, char * name, char * key);
 // This functions appens the app to a certain group
 // It returns true in case of sucess and false otherwise
 // This function is used when an app is trying to connect to a client
-bool AddAppToGroup(struct Group * head, char * name, char * secret, int cl_fd, int pid_in);
+bool AddAppToGroup(struct Group * head, char * name, char * secret, int cl_fd, int fd_cb, int pid_in);
+
+bool AddKeyToWatchList(struct Group * head, char * name, int pid_in, char * key);
 
 // Given the name of the group, the file descriptor of the app and the key-values pair to be inserted
 // It returns true in case of success and false otherwise
@@ -60,6 +62,8 @@ bool AddKeyValueToGroup(struct Group * head, char * name, int pid, char * key, c
 // It returns true in case of success and false otherwise
 // This function is called when the function "close_connection" of the app is called
 bool CloseApp(struct Group ** head_ref, char * name, int pid);
+
+bool IsWatchListOfGroup(struct Group * head, char * name, char * key);
 
 // Given the name of the group and a key, this function deletes the entry in the Hashtable corresponding to a certain key
 // It return true is the key is correctly deleted and false otherwise

@@ -7,6 +7,7 @@
 
 // Maximum number of key-value pairs in each table
 #define SIZE_IN 1000
+#define SECRET_LEN 6
 
 extern struct sockaddr_in sv_addr_auth;
 extern int sfd_auth;
@@ -69,10 +70,27 @@ char * CreateGroupLocalServer(struct Group ** head_ref, char * name) {
 	struct Group * new_node = (struct Group *) calloc(1, sizeof(struct Group));
 	struct Group * last = * head_ref;
 
-	char * secret_temp = "123";
+	int len = 5;
+	// char * secret_temp = (char *) calloc (len+1, sizeof(char));
+	char * secret_temp = (char *) calloc (len+1, sizeof(char));
+	char charset[] = "0123456789"
+                     "abcdefghijklmnopqrstuvwxyz"
+                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	srand(time(NULL));
+	int it = 0;
+  while (it < len) {
+      size_t index = (double) rand() / RAND_MAX * (sizeof charset - 1);
+      secret_temp[it] = charset[index];
+			it++;
+  }
+  secret_temp[len] = '\0';
+
 	strcpy(new_node->group_name, name);
 
-	if(CreateGroupAuthServer(new_node->group_name, secret_temp) == -1) {
+	char secret[BUF_SIZE] = {0};
+	strcpy(secret, secret_temp);
+
+	if(CreateGroupAuthServer(new_node->group_name, secret) == -1) {
 		return NULL;
 	}
 
@@ -224,23 +242,45 @@ char * GetKeyValueLocalServer(struct Group * head, char * name, char * key) {
 	return NULL;
 }
 
-bool AddAppToGroup(struct Group * head, char * name, char * secret, int cl_fd, int pid_in) {
-	
+bool AddAppToGroup(struct Group * head, char * name, char * secret, int cl_fd, int fd_cb, int pid_in) {
+
 	struct Group * current = head;
 	while (current != NULL)
 	{
 		if (strcmp(current->group_name, name) == 0) {
 			char * secret_recv = GetSecretFromAuthServer(current->group_name);
 			if (strcmp(secret_recv, secret) == 0) {
-				AppendApp(&current->apps, cl_fd, pid_in);
+				AppendApp(&current->apps, cl_fd, fd_cb, pid_in);
 				free(secret_recv);
-				return true;                
+				return true;
 			}
 			else {
 				printf("Incorrect secret\n");
 				free(secret_recv);
 				return false;
 			}
+		}
+		current = current->next;
+	}
+	return false;
+}
+
+
+bool AddKeyToWatchList(struct Group * head, char * name, int pid_in, char * key) {
+
+	struct Group * current = head;
+	while (current != NULL)
+	{
+		if (strcmp(current->group_name, name) == 0) {
+			struct App * curr = current->apps;
+			while (curr != NULL) {
+				if (curr->pid == pid_in) {
+					AddKeyToList(&curr->wlist, key);
+					return true;
+				}
+				curr = curr->next;
+			}
+			return false;
 		}
 		current = current->next;
 	}
@@ -280,12 +320,45 @@ bool CloseApp(struct Group ** head_ref, char * name, int pid) {
 	return false;
 }
 
+bool IsWatchListOfGroup(struct Group * head, char * name, char * key) {
+
+	struct Group * current = head;
+	while (current != NULL)
+	{
+		if (strcmp(current->group_name, name) == 0) {
+			struct App * curr = current->apps;
+			struct App * next;
+			while (curr != NULL)
+			{
+				next = curr->next;
+				if(IsWatchList(curr->wlist, key))
+					return true;
+				curr = next;
+			}
+			return false;
+		}
+		current = current->next;
+	}
+
+	return false;
+
+}
+
 bool DeleteKeyValue(struct Group * head, char * name, char * key) {
 
 	struct Group * current = head;
 	while (current != NULL)
 	{
 		if (strcmp(current->group_name, name) == 0) {
+			struct App * curr = current->apps;
+			struct App * next;
+			while (curr != NULL)
+			{
+				next = curr->next;
+				if(IsWatchList(curr->wlist, key))
+					DeleteFromWatchList(&curr->wlist, key);
+				curr = next;
+			}
 			ht_delete(current->table, key);
 			return true;
 		}
@@ -333,15 +406,15 @@ int DeleteGroupAuthServer(char * g_name) {
 	return 1;
 }
 
-bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {   
-	
+bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
+
 	if(FindGroupLocalServer(*head_ref, name) == false) {
 		printf("Group name doesn't exist\n");
 		return false;
 	}
 
 	struct Group * temp = * head_ref, * prev;
- 
+
 	if (temp != NULL && (strcmp(temp->group_name, name)==0)) {
 		DeleteGroupAuthServer(temp->group_name);
 		DeleteAppList(&temp->apps);
@@ -350,7 +423,7 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 		free(temp);
 		return true;
 	}
- 
+
 	while (temp != NULL && (strcmp(temp->group_name, name)!=0)) {
 		DeleteGroupAuthServer(temp->group_name);
 		DeleteAppList(&temp->apps);
@@ -358,12 +431,12 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 		prev = temp;
 		temp = temp->next;
 	}
- 
+
 	if (temp == NULL)
 		return true;
- 
+
 	prev->next = temp->next;
- 
+
 	free(temp);
 
 	return true;
@@ -373,7 +446,7 @@ int DeleteGroupList(struct Group ** head_ref) {
 
 	struct Group * current = * head_ref;
 	struct Group * next;
- 
+
 	int success_flag = 1;
 
 	while (current != NULL)
@@ -386,7 +459,7 @@ int DeleteGroupList(struct Group ** head_ref) {
 		free(current);
 		current = next;
 	}
-	
+
 	* head_ref = NULL;
 
 	return success_flag;
@@ -396,7 +469,7 @@ void CloseAllFileDesc(struct Group**  head_ref) {
 
 	struct Group * current = * head_ref;
 	struct Group * next;
- 
+
 	int success_flag = 1;
 
 	while (current != NULL)
@@ -412,7 +485,7 @@ void CloseAllFileDesc(struct Group**  head_ref) {
 
 void ShowAllGroupsInfo(struct Group * group) {
 	while (group != NULL)
-	{	
+	{
 		printf("Name: %s\n", group->group_name);
 		char * secret_recv = GetSecretFromAuthServer(group->group_name);
 		if (secret_recv != NULL) {
@@ -445,7 +518,7 @@ bool ShowGroupInfo(struct Group * head, char * name) {
 
 void ShowAppStatus(struct Group * group) {
 	while (group != NULL)
-	{   
+	{
 		printf("%s:\n", group->group_name);
 		PrintAppList(group->apps);
 		group = group->next;

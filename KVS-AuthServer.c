@@ -15,6 +15,8 @@
 #define SIZE_IN 1000
 #define BACKLOG 5
 
+static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+
 struct HashTable * table;
 
 struct LocalSvrData {
@@ -50,8 +52,9 @@ void AddServerToList(int fd) {
 
 void RemoveServerFromList(int fd) {
 
-	struct LocalSvrData * temp = connected_servers, * prev;
- 
+	struct LocalSvrData * temp = connected_servers;
+	struct LocalSvrData * prev = NULL;
+
 	if (temp != NULL && (temp->file_desc == fd)) {
 		if (close(temp->file_desc) == -1) {
 			printf("Authentification Server: Error in closing socket\n");
@@ -60,26 +63,31 @@ void RemoveServerFromList(int fd) {
 		free(temp);
 		return;
 	}
- 
-	while (temp != NULL && (temp->file_desc == fd)) {
-		if (close(temp->file_desc) == -1) {
-			printf("Authentification Server: Error in closing socket\n");
-		}
+
+	while (temp != NULL && (temp->file_desc != fd)) {
 		prev = temp;
 		temp = temp->next;
 	}
- 
+
 	if (temp == NULL)
 		return;
- 
+
+	if (close(temp->file_desc) == -1) {
+		printf("Authentification Server: Error in closing socket\n");
+	}
+
 	prev->next = temp->next;
- 
+
 	free(temp);
 
 	return;
 }
 
 void * thread_func(void * arg) {
+
+	if (pthread_detach(pthread_self()) != 0) {
+			printf("Local Server: Error in 'pthread_detach'\n");
+	}
 
 	struct sockaddr_in addr = *(struct sockaddr_in *)arg;
 	// Length of the client address
@@ -104,15 +112,17 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
+	pthread_mutex_lock(&mtx);
 	AddServerToList(sfd);
+	pthread_mutex_unlock(&mtx);
 
-	char buf[BUF_SIZE];
+	char buf[BUF_SIZE] = {0};
 	char addrStr[INET_ADDRSTRLEN];
 	len = sizeof(struct sockaddr_in);
 
 	int ready_flag = -1;
-	char g_name[BUF_SIZE];
-	char secret[BUF_SIZE];
+	char g_name[BUF_SIZE] = {0};
+	char secret[BUF_SIZE] = {0};
 
 	printf("New Local Server Connected\n");
 
@@ -123,14 +133,13 @@ void * thread_func(void * arg) {
 			pthread_exit(NULL);
 		}
 		else {
-			// printf("Received %s in thread\n", buf);
 			if (inet_ntop(AF_INET, &addr.sin_addr, addrStr, INET_ADDRSTRLEN) == NULL) {
 				printf("Authentification Server: Couldn't convert client address to string\n");
 				pthread_exit(NULL);
 			}
 			else {
 				if (strcmp(buf, "NewGroup") == 0) {
-					// printf("Authentification server accepted connection from (%s, %u)\n", addrStr, ntohs(addr.sin_port));
+					pthread_mutex_lock(&mtx);
 					ready_flag = 1;
 					// Send flag saying that AuthServer is ready to receive group
 					if (sendto(sfd, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
@@ -172,9 +181,10 @@ void * thread_func(void * arg) {
 					if (ready_flag == 1) {
 						printf("Group created!\n");
 					}
+					pthread_mutex_unlock(&mtx);
 				}
 				else if (strcmp(buf, "GetSecret") == 0) {
-					// printf("Authentification server accepted connection from (%s, %u)\n", addrStr, ntohs(addr.sin_port));
+					pthread_mutex_lock(&mtx);
 					ready_flag = 1;
 					// Send flag saying that AuthServer is ready to receive group
 					if (sendto(sfd, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
@@ -205,16 +215,17 @@ void * thread_func(void * arg) {
 						printf("Authentification Server: Error in recvfrom\n");
 						pthread_exit(NULL);
 					}
-					char temp_secret[BUF_SIZE];
+					char temp_secret[BUF_SIZE] = {0};
 					strcpy(temp_secret, ht_search(table, g_name));
 					// Send secret
 					if (sendto(sfd, temp_secret, sizeof(temp_secret), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(temp_secret)) {
 						printf("Authentification Server: Error in sendto\n");
 						pthread_exit(NULL);
 					}
+					pthread_mutex_unlock(&mtx);
 				}
 				else if (strcmp(buf, "DeleteGroup") == 0) {
-					// printf("Authentification server accepted connection from (%s, %u)\n", addrStr, ntohs(addr.sin_port));
+					pthread_mutex_lock(&mtx);
 					ready_flag = 1;
 					// Send flag saying that AuthServer is ready to receive group
 					if (sendto(sfd, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
@@ -244,9 +255,10 @@ void * thread_func(void * arg) {
 					if (ready_flag == 1) {
 						printf("Group deleted!\n");
 					}
+					pthread_mutex_unlock(&mtx);
 				}
 				else if (strcmp(buf, "FindGroup") == 0) {
-					// printf("Authentification server accepted connection from (%s, %u)\n", addrStr, ntohs(addr.sin_port));
+					pthread_mutex_lock(&mtx);
 					ready_flag = 1;
 					// Send flag saying that AuthServer is ready to receive group
 					if (sendto(sfd, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
@@ -267,9 +279,12 @@ void * thread_func(void * arg) {
 						printf("Authentification Server: Error in sendto\n");
 						pthread_exit(NULL);
 					}
+					pthread_mutex_unlock(&mtx);
 				}
 				else if (strcmp(buf, "CloseConnection") == 0) {
+					pthread_mutex_lock(&mtx);
 					RemoveServerFromList(sfd);
+					pthread_mutex_unlock(&mtx);
 					printf("Connection closed\n");
 					break;
 				}
@@ -285,12 +300,16 @@ int sfd;
 
 void * handle_local_servers(void * arg) {
 
+	if (pthread_detach(pthread_self()) != 0) {
+			printf("Local Server: Error in 'pthread_detach'\n");
+	}
+
 	// Length of the client address
 	socklen_t len;
 	// Addresses for auth server and local server
 	struct sockaddr_in sv_addr_auth, sv_addr_local;
 	char localSrvStr[INET_ADDRSTRLEN];
-	char buf[BUF_SIZE];
+	char buf[BUF_SIZE] = {0};
 
 	// Socket Creation
 	sfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -348,7 +367,7 @@ int main(int argc, char *argv[]) {
 	pthread_t t_id;
 	pthread_create(&t_id, NULL, handle_local_servers, NULL);
 
-	char str[BUF_SIZE];
+	char str[BUF_SIZE] = {0};
 	while (1) {
 		fgets(str, sizeof(str), stdin);
 		if (strcmp(str, "Quit\n") == 0) {
@@ -358,9 +377,11 @@ int main(int argc, char *argv[]) {
 			printf("Unknown Command\n");
 	}
 
+	pthread_cancel(t_id);
+
 	struct LocalSvrData * current = connected_servers;
 	struct LocalSvrData * next = NULL;
- 
+
 	while (current != NULL)
 	{
 		next = current->next;
@@ -370,7 +391,7 @@ int main(int argc, char *argv[]) {
 		free(current);
 		current = next;
 	}
- 
+
 	connected_servers = NULL;
 
 	if (close(sfd) == -1) {
