@@ -522,6 +522,14 @@ int main(int argc, char *argv[]) {
 	pthread_t t_id_apps;
 	pthread_create(&t_id_apps, NULL, handle_apps, NULL);
 
+	struct timeval tv;
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+	if (setsockopt(sfd_auth, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+	    printf("Local Server: Error in setting socket options\n");
+	    exit(-1);
+	}
+	
 	char str[BUF_SIZE] = {0};
 	char g_name[BUF_SIZE] = {0};
 	size_t len;
