@@ -10,13 +10,14 @@
 #include <stdbool.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <errno.h>
 #include "groupList.h"
 
 #define SV_SOCK_PATH "/tmp/server_sock"
 #define SV_SOCK_PATH_CB "/tmp/server_sock_cb"
 // Maximum size for the secret and group name
 #define BUF_SIZE 100
-#define BACKLOG 5
+#define BACKLOG 20
 
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 
@@ -261,10 +262,11 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
+	struct sockaddr_un sv_addr_cb;
+	memset(&sv_addr_cb, 0, sizeof(struct sockaddr_un));
+
 	// Clean socket path
 	remove(SV_SOCK_PATH_CB);
-
-	struct sockaddr_un sv_addr_cb;
 
 	// Bind
 	sv_addr_cb.sun_family = AF_UNIX;
@@ -278,7 +280,7 @@ void * thread_func(void * arg) {
 	printf("After bind\n");
 
 	// Listen
-	if (listen(sfd_callback, BACKLOG) == 1) {
+	if (listen(sfd_callback, BACKLOG) == - 1) {
 		printf("Local Server: Error in listening\n");
 		pthread_exit(NULL);
 	}
@@ -286,6 +288,7 @@ void * thread_func(void * arg) {
 	printf("After listen\n");
 
 	struct sockaddr_un app_addr;
+	memset(&app_addr, 0, sizeof(struct sockaddr_un));
 	socklen_t len = sizeof(struct sockaddr_un);
 
 	int fd_cb = accept(sfd_callback, (struct sockaddr *) &app_addr, &len);
@@ -403,6 +406,8 @@ void * thread_func(void * arg) {
 			pthread_mutex_unlock(&mtx);
 			break;
 		}
+		else
+			printf("Unknown command\n");
 	}
 
 	pthread_exit(NULL);
@@ -415,13 +420,16 @@ int sfd_main;
 void * handle_apps(void * arg) {
 
 	if (pthread_detach(pthread_self()) != 0) {
-			printf("Local Server: Error in 'pthread_detach'\n");
+		printf("Local Server: Error in 'pthread_detach'\n");
+		pthread_exit(NULL);
 	}
 
 	// File descriptor assignment
 	sfd_main = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (sfd_main == -1)
+	if (sfd_main == -1) {
 		printf("Local Server: Error in socket creation\n");
+		pthread_exit(NULL);
+	}
 
 	// Clean socket path
 	remove(SV_SOCK_PATH);
@@ -430,12 +438,16 @@ void * handle_apps(void * arg) {
 	sv_addr.sun_family = AF_UNIX;
 	strncpy(sv_addr.sun_path, SV_SOCK_PATH, sizeof(sv_addr.sun_path) - 1);
 
-	if (bind(sfd_main, (struct sockaddr *) &sv_addr, sizeof(struct sockaddr_un)) == -1)
+	if (bind(sfd_main, (struct sockaddr *) &sv_addr, sizeof(struct sockaddr_un)) == -1) {
 		printf("Local Server: Error in binding\n");
+		pthread_exit(NULL);
+	}
 
 	// Listen
-	if (listen(sfd_main, BACKLOG) == 1)
+	if (listen(sfd_main, BACKLOG) == -1) {
 		printf("Local Server: Error in listening\n");
+		pthread_exit(NULL);
+	}
 
 	struct sockaddr_un app_addr;
 	socklen_t len = sizeof(struct sockaddr_un);
@@ -491,6 +503,7 @@ int main(int argc, char *argv[]) {
 	size_t len;
 	while (1) {
 		fgets(str, sizeof(str), stdin);
+		// ShowAllGroupsInfo(groups);
 		if (strcmp(str, "Create group\n") == 0) {
 			pthread_mutex_lock(&mtx);
 			printf("Insert group id:\n");
@@ -514,6 +527,7 @@ int main(int argc, char *argv[]) {
 			if (len > 0 && g_name[len-1] == '\n') {
 			  g_name[--len] = '\0';
 			}
+			printf("Group to delete: %s\n", g_name);
 			if (DeleteGroupLocalServer(&groups, g_name))
 				printf("Group deleted!\n");
 			pthread_mutex_unlock(&mtx);
@@ -540,6 +554,8 @@ int main(int argc, char *argv[]) {
 		}
 		else
 			printf("Unknown Command\n");
+		memset(str, 0, sizeof(str));
+		memset(g_name, 0, sizeof(g_name));
 	}
 
 	pthread_cancel(t_id_apps);

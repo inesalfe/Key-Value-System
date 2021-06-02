@@ -99,30 +99,51 @@ bool CloseConnection(struct App * head, int pid)
 	return false;
 }
 
-void CloseFileDesc(struct App** head_ref) {
+// void CloseAllConnections(struct App * head)
+// {
+// 	struct App * current = head;
+// 	while (current != NULL)
+// 	{
+// 		if (current->isClosed == false) {
+// 			clock_gettime(CLOCK_REALTIME, &current->stop);
+// 			current->delta_t = (current->stop.tv_sec - current->start.tv_sec) + (double) (current->stop.tv_nsec - current->start.tv_nsec) / 1.0e9;
+// 			if (close(current->fd) == -1) {
+// 				printf("Local Server: Error in closing socket\n");
+// 			}
+// 			if (close(current->fd_cb) == -1) {
+// 				printf("Local Server: Error in closing socket\n");
+// 			}
+// 			current->isClosed = true;
+// 		}
+// 		current = current->next;
+// 	}
+// 	return;
+// }
 
-	struct App * current = * head_ref;
-	struct App * next;
+// void CloseFileDesc(struct App** head_ref) {
 
-	while (current != NULL)
-	{
-		next = current->next;
-		if (current->isClosed == false) {
-			clock_gettime(CLOCK_REALTIME, &current->stop);
-			current->delta_t = (current->stop.tv_sec - current->start.tv_sec) + (double) (current->stop.tv_nsec - current->start.tv_nsec) / 1.0e9;
-			if (close(current->fd) == -1) {
-				printf("Local Server: Error in closing socket\n");
-			}
-			if (close(current->fd_cb) == -1) {
-				printf("Local Server: Error in closing socket\n");
-			}
-			current->isClosed = true;
-		}
-		current = next;
-	}
+// 	struct App * current = * head_ref;
+// 	struct App * next;
 
-	return;
-}
+// 	while (current != NULL)
+// 	{
+// 		next = current->next;
+// 		if (current->isClosed == false) {
+// 			clock_gettime(CLOCK_REALTIME, &current->stop);
+// 			current->delta_t = (current->stop.tv_sec - current->start.tv_sec) + (double) (current->stop.tv_nsec - current->start.tv_nsec) / 1.0e9;
+// 			if (close(current->fd) == -1) {
+// 				printf("Local Server: Error in closing socket\n");
+// 			}
+// 			if (close(current->fd_cb) == -1) {
+// 				printf("Local Server: Error in closing socket\n");
+// 			}
+// 			current->isClosed = true;
+// 		}
+// 		current = next;
+// 	}
+
+// 	return;
+// }
 
 void DeleteAppList(struct App ** head_ref) {
 

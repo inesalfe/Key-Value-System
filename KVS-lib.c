@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
 
 #define SV_SOCK_PATH "/tmp/server_sock"
 #define SV_SOCK_PATH_CB "/tmp/server_sock_cb"
@@ -56,8 +57,6 @@ int close_connection() {
 		printf("App: Error in sending function code\n");
 		return -3;
 	}
-
-	pthread_cancel(callback_pid);
 
 	if (close(cfd) == -1) {
 		printf("App: Error in closing socket\n");
@@ -113,27 +112,14 @@ void * callback_thread(void * arg) {
 			memset(changed_key, 0, sizeof(changed_key));
 		}
 		else if (flag == -1) {
-			printf("Received flag for deleted group in server\n");
-			struct thread_args * current = cb_info;
-			struct thread_args * next;
-			while (current != NULL)
-			{
-				next = current->next;
-				free(current);
-				current = next;
+			int sucess = close_connection();
+			if (sucess == 1) {
+				printf("App: Closing connection due to deletion of group in server\n");
 			}
-			cb_info = NULL;
-			if (close(cfd) == -1) {
-				printf("App: Error in closing socket\n");
-				break;
+			else {
+				printf("App: Error in closing connection due to deletion of group in server\n");
 			}
-			if (close(cfd_cb) == -1) {
-				printf("App: Error in closing socket\n");
-				break;
-			}
-			remove(cl_addr.sun_path);
-			remove(cl_addr_cb.sun_path);
-			exit(0);
+			break;
 		}
 		flag = 0;
 	}
@@ -155,15 +141,21 @@ int establish_connection (char * group_id, char * secret) {
 		return -2;
 	}
 
+	// Clean socket path
+	// remove(SV_SOCK_PATH);
+
 	// Server address assignment
+	memset(&sv_addr, 0, sizeof(struct sockaddr_un));
 	sv_addr.sun_family = AF_UNIX;
 	strncpy(sv_addr.sun_path, SV_SOCK_PATH, sizeof(sv_addr.sun_path) - 1);
 
 	// App address assignment with PID
+	memset(&cl_addr, 0, sizeof(struct sockaddr_un));
 	cl_addr.sun_family = AF_UNIX;
 	snprintf(cl_addr.sun_path, sizeof(cl_addr.sun_path), "/tmp/app_socket_%ld", (long) pthread_self());
 
 	remove(cl_addr.sun_path);
+	unlink(cl_addr.sun_path);
 
 	// Bind app
 	if (bind(cfd, (struct sockaddr *) &cl_addr, sizeof(struct sockaddr_un)) == -1) {
@@ -242,10 +234,12 @@ int establish_connection (char * group_id, char * secret) {
 	}
 
 	// App address assignment with PID
+	memset(&cl_addr_cb, 0, sizeof(struct sockaddr_un));
 	cl_addr_cb.sun_family = AF_UNIX;
 	snprintf(cl_addr_cb.sun_path, sizeof(cl_addr_cb.sun_path), "/tmp/app_socket_cb_%ld", (long) pthread_self());
 
 	remove(cl_addr_cb.sun_path);
+	unlink(cl_addr_cb.sun_path);
 
 	// Bind app
 	if (bind(cfd_cb, (struct sockaddr *) &cl_addr_cb, sizeof(struct sockaddr_un)) == -1) {
@@ -253,14 +247,24 @@ int establish_connection (char * group_id, char * secret) {
 		return -11;
 	}
 
+	// remove(SV_SOCK_PATH_CB);
+
 	// Server address assignment
+	memset(&sv_addr_cb, 0, sizeof(struct sockaddr_un));
 	sv_addr_cb.sun_family = AF_UNIX;
 	strncpy(sv_addr_cb.sun_path, SV_SOCK_PATH_CB, sizeof(sv_addr_cb.sun_path) - 1);
 
 	// Connect to server
 	if (connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un)) == -1) {
 		printf("App: Error in connect\n");
-		return -12;
+		printf("Value of errno: %d\n", errno);
+		// printf("The error message is: %s\n", strerror(errno));
+		perror("Message from perror");
+		if (close(cfd_cb) == -1) {
+			printf("App: Error in closing socket\n");
+			exit(-1);
+		}
+		exit(-1);
 	}
 
 	printf("Connection accepted\n");

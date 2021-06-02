@@ -223,7 +223,8 @@ char * ht_search(HashTable * table, char * key) {
     return NULL;
 }
  
-void ht_delete(HashTable * table, char* key) {
+void ht_delete(HashTable * table, char * key) {
+
     // Deletes an item from the table
     int index = hash_function(key);
     Ht_item * item = table->items[index];

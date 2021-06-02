@@ -138,6 +138,7 @@ void * thread_func(void * arg) {
 				pthread_exit(NULL);
 			}
 			else {
+				// print_table(table);
 				if (strcmp(buf, "NewGroup") == 0) {
 					pthread_mutex_lock(&mtx);
 					ready_flag = 1;
@@ -207,7 +208,7 @@ void * thread_func(void * arg) {
 					}
 					// If ready_flag = -1, exit or continue cicle.
 					if (ready_flag == -1) {
-						printf("That group id doesn't exist!\n");
+						printf("Group name doesn't exist\n");
 						continue;
 					}
 					// Receive flag saying that the server is ready to receive the secret
@@ -237,6 +238,7 @@ void * thread_func(void * arg) {
 						printf("Authentification Server: Error in recvfrom\n");
 						pthread_exit(NULL);
 					}
+					// printf("Group to be deleted: %s\n", g_name);
 					// Check if group name exists
 					// If it doesn't ready_flag = -1, else do nothing.
 					// printf("%s\n", ht_search(table, g_name));
@@ -288,6 +290,7 @@ void * thread_func(void * arg) {
 					printf("Connection closed\n");
 					break;
 				}
+				memset(buf, 0, sizeof(buf));
 			}
 		}
 	}

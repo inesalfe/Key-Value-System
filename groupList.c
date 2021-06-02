@@ -74,16 +74,16 @@ char * CreateGroupLocalServer(struct Group ** head_ref, char * name) {
 	// char * secret_temp = (char *) calloc (len+1, sizeof(char));
 	char * secret_temp = (char *) calloc (len+1, sizeof(char));
 	char charset[] = "0123456789"
-                     "abcdefghijklmnopqrstuvwxyz"
-                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+										 "abcdefghijklmnopqrstuvwxyz"
+										 "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	srand(time(NULL));
 	int it = 0;
-  while (it < len) {
-      size_t index = (double) rand() / RAND_MAX * (sizeof charset - 1);
-      secret_temp[it] = charset[index];
+	while (it < len) {
+			size_t index = (double) rand() / RAND_MAX * (sizeof charset - 1);
+			secret_temp[it] = charset[index];
 			it++;
-  }
-  secret_temp[len] = '\0';
+	}
+	secret_temp[len] = '\0';
 
 	strcpy(new_node->group_name, name);
 
@@ -413,8 +413,6 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 		return false;
 	}
 
-	// CloseGroupFileDesc(* head_ref, name);
-
 	struct Group * temp = * head_ref, * prev;
 
 	if (temp != NULL && (strcmp(temp->group_name, name)==0)) {
@@ -427,15 +425,10 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 				if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
 					printf("Local Server: Error in sending flag\n");
 				}
-				if (close(curr->fd_cb) == -1) {
-					printf("Local Server: Error in closing socket\n");
-				}
-				if (close(curr->fd) == -1) {
-					printf("Local Server: Error in closing socket\n");
-				}
 			}
 			curr = curr->next;
 		}
+		// CloseAllConnections(temp->apps);
 		DeleteAppList(&temp->apps);
 		free_table(temp->table);
 		* head_ref = temp->next;
@@ -444,26 +437,6 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 	}
 
 	while (temp != NULL && (strcmp(temp->group_name, name)!=0)) {
-		DeleteGroupAuthServer(temp->group_name);
-		struct App * curr = temp->apps;
-		while (curr != NULL)
-		{
-			if (curr->isClosed == false) {
-				int flag = -1;
-				if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
-					printf("Local Server: Error in sending flag\n");
-				}
-				if (close(curr->fd_cb) == -1) {
-					printf("Local Server: Error in closing socket\n");
-				}
-				if (close(curr->fd) == -1) {
-					printf("Local Server: Error in closing socket\n");
-				}
-			}
-			curr = curr->next;
-		}
-		DeleteAppList(&temp->apps);
-		free_table(temp->table);
 		prev = temp;
 		temp = temp->next;
 	}
@@ -473,6 +446,21 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 
 	prev->next = temp->next;
 
+	DeleteGroupAuthServer(temp->group_name);
+	struct App * curr = temp->apps;
+	while (curr != NULL)
+	{
+		if (curr->isClosed == false) {
+			int flag = -1;
+			if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
+				printf("Local Server: Error in sending flag\n");
+			}
+		}
+		curr = curr->next;
+	}
+	// CloseAllConnections(temp->apps);
+	DeleteAppList(&temp->apps);
+	free_table(temp->table);
 	free(temp);
 
 	return true;
@@ -498,15 +486,10 @@ int DeleteGroupList(struct Group ** head_ref) {
 				if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
 					printf("Local Server: Error in sending flag\n");
 				}
-				if (close(curr->fd_cb) == -1) {
-					printf("Local Server: Error in closing socket\n");
-				}
-				if (close(curr->fd) == -1) {
-					printf("Local Server: Error in closing socket\n");
-				}
 			}
 			curr = curr->next;
 		}
+		// CloseAllConnections(current->apps);
 		DeleteAppList(&current->apps);
 		free_table(current->table);
 		free(current);
@@ -518,50 +501,53 @@ int DeleteGroupList(struct Group ** head_ref) {
 	return success_flag;
 }
 
-void CloseAllFileDesc(struct Group **  head_ref) {
+// void CloseAllFileDesc(struct Group **  head_ref) {
 
-	struct Group * current = * head_ref;
-	struct Group * next;
+// 	struct Group * current = * head_ref;
+// 	struct Group * next;
 
-	int success_flag = 1;
+// 	int success_flag = 1;
 
-	while (current != NULL)
-	{
-		next = current->next;
-		CloseFileDesc(&current->apps);
-		current = next;
-	}
+// 	while (current != NULL)
+// 	{
+// 		next = current->next;
+// 		CloseFileDesc(&current->apps);
+// 		current = next;
+// 	}
 
-	return;
+// 	return;
 
-}
+// }
 
-void CloseGroupFileDesc(struct Group * head, char * name) {
+// void CloseGroupFileDesc(struct Group * head, char * name) {
 
+// 	struct Group * current = head;
+// 	while (current != NULL)
+// 	{
+// 		if (strcmp(current->group_name, name) == 0) {
+// 			CloseFileDesc(&current->apps);
+// 			return;
+// 		}
+// 		current = current->next;
+// 	}
+// 	return;
+// }
+
+void ShowAllGroupsInfo(struct Group * head) {
 	struct Group * current = head;
 	while (current != NULL)
 	{
-		if (strcmp(current->group_name, name) == 0) {
-			CloseFileDesc(&current->apps);
-			return;
-		}
-		current = current->next;
-	}
-	return;
-}
-
-void ShowAllGroupsInfo(struct Group * group) {
-	while (group != NULL)
-	{
-		printf("Name: %s\n", group->group_name);
-		char * secret_recv = GetSecretFromAuthServer(group->group_name);
+		printf("Name: %s\n", current->group_name);
+		char * secret_recv = GetSecretFromAuthServer(current->group_name);
 		if (secret_recv != NULL) {
 			printf("Secret: %s\n", secret_recv);
 		}
-		printf("Number of key-value pairs: %d\n", group->table->count);
-		group = group->next;
+		printf("Number of key-value pairs: %d\n", current->table->count);
+		print_table(current->table);
+		current = current->next;
 		free(secret_recv);
 	}
+	return;
 }
 
 bool ShowGroupInfo(struct Group * head, char * name) {
@@ -583,11 +569,13 @@ bool ShowGroupInfo(struct Group * head, char * name) {
 	return false;
 }
 
-void ShowAppStatus(struct Group * group) {
-	while (group != NULL)
+void ShowAppStatus(struct Group * head) {
+	struct Group * current = head;
+	while (current != NULL)
 	{
-		printf("%s:\n", group->group_name);
-		PrintAppList(group->apps);
-		group = group->next;
+		printf("%s:\n", current->group_name);
+		PrintAppList(current->apps);
+		current = current->next;
 	}
+	return;
 }

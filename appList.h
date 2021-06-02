@@ -40,7 +40,9 @@ void AppendApp(struct App ** head_ref, int cl_fd, int fd_cb, int pid_in);
 // This funciton is called by the "close_GroupApp" function, called when the function "close_connection" of the app is called
 bool CloseConnection(struct App * head, int pid);
 
-void CloseFileDesc(struct App ** head_ref);
+void CloseAllConnections(struct App * head);
+
+// void CloseFileDesc(struct App ** head_ref);
 
 void DeleteAppList(struct App ** head_ref);
 

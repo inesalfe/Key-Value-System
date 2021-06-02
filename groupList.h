@@ -81,14 +81,14 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name);
 // Delest all groups in the Local Server in both the Local and Authentification Server
 int DeleteGroupList(struct Group **  head_ref);
 
-// Close all file descriptors of still connected apps before exiting the program+
-void CloseAllFileDesc(struct Group **  head_ref);
+// // Close all file descriptors of still connected apps before exiting the program+
+// void CloseAllFileDesc(struct Group **  head_ref);
 
-void CloseGroupFileDesc(struct Group * head, char * name);
+// void CloseGroupFileDesc(struct Group * head, char * name);
 
 // Function that prints information about all groups
 // This is still not used
-void ShowAllGroupsInfo(struct Group * group);
+void ShowAllGroupsInfo(struct Group * head);
 
 // Function that prints information for a given group
 // Called when the user uses the "Show Group Info" command
