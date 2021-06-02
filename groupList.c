@@ -406,6 +406,33 @@ int DeleteGroupAuthServer(char * g_name) {
 	return 1;
 }
 
+void SendDeleteGroupFlags(struct Group ** head_ref, char * name) {
+
+	int flag = -1;
+
+	struct Group * current = * head_ref;
+
+	while (current != NULL)
+	{
+		if (strcmp(current->group_name, name) == 0) {
+			struct App * curr = current->apps;
+			while (curr != NULL)
+			{
+				if (curr->isClosed == false) {
+					if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
+						printf("Local Server: Error in sending flag\n");
+					}
+				}
+				curr = curr->next;
+			}
+			return;
+		}
+		current = current->next;
+	}
+	return;
+
+}
+
 bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 
 	if(FindGroupLocalServer(*head_ref, name) == false) {
@@ -417,18 +444,6 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 
 	if (temp != NULL && (strcmp(temp->group_name, name)==0)) {
 		DeleteGroupAuthServer(temp->group_name);
-		struct App * curr = temp->apps;
-		while (curr != NULL)
-		{
-			if (curr->isClosed == false) {
-				int flag = -1;
-				if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
-					printf("Local Server: Error in sending flag\n");
-				}
-			}
-			curr = curr->next;
-		}
-		// CloseAllConnections(temp->apps);
 		DeleteAppList(&temp->apps);
 		free_table(temp->table);
 		* head_ref = temp->next;
@@ -442,28 +457,88 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 	}
 
 	if (temp == NULL)
-		return true;
+		return false;
 
 	prev->next = temp->next;
 
 	DeleteGroupAuthServer(temp->group_name);
-	struct App * curr = temp->apps;
-	while (curr != NULL)
-	{
-		if (curr->isClosed == false) {
-			int flag = -1;
-			if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
-				printf("Local Server: Error in sending flag\n");
-			}
-		}
-		curr = curr->next;
-	}
-	// CloseAllConnections(temp->apps);
 	DeleteAppList(&temp->apps);
 	free_table(temp->table);
 	free(temp);
 
 	return true;
+}
+
+void SendDeleteAllGroupsFlags(struct Group ** head_ref) {
+
+	struct Group * current = * head_ref;
+	struct Group * next;
+
+	int flag = -1;
+
+	while (current != NULL)
+	{
+		next = current->next;
+		struct App * curr = current->apps;
+		while (curr != NULL)
+		{
+			if (curr->isClosed == false) {
+				if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
+					printf("Local Server: Error in sending flag\n");
+				}
+			}
+			curr = curr->next;
+		}
+		current = next;
+	}
+
+	return;
+
+}
+
+bool AllAppsClosed(struct Group ** head_ref) {
+
+	struct Group * current = * head_ref;
+	struct Group * next;
+
+	while (current != NULL)
+	{
+		next = current->next;
+		struct App * curr = current->apps;
+		while (curr != NULL)
+		{
+			if (curr->isClosed == false) {
+				return false;
+			}
+			curr = curr->next;
+		}
+		current = next;
+	}
+
+	return true;
+
+}
+
+bool AllAppsFromGroupClosed(struct Group ** head_ref, char * name) {
+
+	struct Group * current = * head_ref;
+
+	while (current != NULL)
+	{
+		if (strcmp(current->group_name, name) == 0) {
+			struct App * curr = current->apps;
+			while (curr != NULL)
+			{
+				if (curr->isClosed == false) {
+					return false;
+				}
+				curr = curr->next;
+			}
+		}
+		current = current->next;
+	}
+	return true;	
+
 }
 
 int DeleteGroupList(struct Group ** head_ref) {
@@ -478,18 +553,6 @@ int DeleteGroupList(struct Group ** head_ref) {
 		next = current->next;
 		if(DeleteGroupAuthServer(current->group_name) == -1)
 			success_flag = -1;
-		struct App * curr = current->apps;
-		while (curr != NULL)
-		{
-			if (curr->isClosed == false) {
-				int flag = -1;
-				if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
-					printf("Local Server: Error in sending flag\n");
-				}
-			}
-			curr = curr->next;
-		}
-		// CloseAllConnections(current->apps);
 		DeleteAppList(&current->apps);
 		free_table(current->table);
 		free(current);

@@ -192,6 +192,29 @@ void * thread_func(void * arg) {
 			printf("Local Server: Error in 'pthread_detach'\n");
 	}
 
+	// File descriptor assignment
+	int sfd_callback = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (sfd_callback == -1) {
+		printf("Local Server: Error in socket creation\n");
+		pthread_exit(NULL);
+	}
+
+	struct sockaddr_un sv_addr_cb;
+	memset(&sv_addr_cb, 0, sizeof(struct sockaddr_un));
+
+	// Clean socket path
+	remove(SV_SOCK_PATH_CB);
+
+	// Bind
+	sv_addr_cb.sun_family = AF_UNIX;
+	strncpy(sv_addr_cb.sun_path, SV_SOCK_PATH_CB, sizeof(sv_addr_cb.sun_path) - 1);
+	// printf("Server address: %s\n", sv_addr_cb.sun_path);
+
+	if (bind(sfd_callback, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un)) == -1) {
+		printf("Local Server: Error in binding\n");
+		pthread_exit(NULL);
+	}
+
 	// Sending flag saying that connection was established
 	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending flag for established connection\n");
@@ -255,29 +278,7 @@ void * thread_func(void * arg) {
 
 	printf("First connection established\n");
 
-	// File descriptor assignment
-	int sfd_callback = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (sfd_callback == -1) {
-		printf("Local Server: Error in socket creation\n");
-		pthread_exit(NULL);
-	}
-
-	struct sockaddr_un sv_addr_cb;
-	memset(&sv_addr_cb, 0, sizeof(struct sockaddr_un));
-
-	// Clean socket path
-	remove(SV_SOCK_PATH_CB);
-
-	// Bind
-	sv_addr_cb.sun_family = AF_UNIX;
-	strncpy(sv_addr_cb.sun_path, SV_SOCK_PATH_CB, sizeof(sv_addr_cb.sun_path) - 1);
-
-	if (bind(sfd_callback, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un)) == -1) {
-		printf("Local Server: Error in binding\n");
-		pthread_exit(NULL);
-	}
-
-	printf("After bind\n");
+	// printf("After bind\n");
 
 	// Listen
 	if (listen(sfd_callback, BACKLOG) == - 1) {
@@ -285,7 +286,7 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
-	printf("After listen\n");
+	// printf("After listen\n");
 
 	struct sockaddr_un app_addr;
 	memset(&app_addr, 0, sizeof(struct sockaddr_un));
@@ -510,7 +511,7 @@ int main(int argc, char *argv[]) {
 			fgets(g_name, sizeof(g_name), stdin);
 			len = strlen(g_name);
 			if (len > 0 && g_name[len-1] == '\n') {
-			  g_name[--len] = '\0';
+				g_name[--len] = '\0';
 			}
 			char * secret_recv = CreateGroupLocalServer(&groups, g_name);
 			if (secret_recv != NULL) {
@@ -525,9 +526,12 @@ int main(int argc, char *argv[]) {
 			fgets(g_name, sizeof(g_name), stdin);
 			len = strlen(g_name);
 			if (len > 0 && g_name[len-1] == '\n') {
-			  g_name[--len] = '\0';
+				g_name[--len] = '\0';
 			}
-			printf("Group to delete: %s\n", g_name);
+			SendDeleteGroupFlags(&groups, g_name);
+			pthread_mutex_unlock(&mtx);
+			while(AllAppsFromGroupClosed(&groups, g_name) == false);
+			pthread_mutex_lock(&mtx);
 			if (DeleteGroupLocalServer(&groups, g_name))
 				printf("Group deleted!\n");
 			pthread_mutex_unlock(&mtx);
@@ -538,7 +542,7 @@ int main(int argc, char *argv[]) {
 			fgets(g_name, sizeof(g_name), stdin);
 			len = strlen(g_name);
 			if (len > 0 && g_name[len-1] == '\n') {
-			  g_name[--len] = '\0';
+				g_name[--len] = '\0';
 			}
 			if (ShowGroupInfo(groups, g_name) == false)
 				printf("Group not found!\n");
@@ -565,11 +569,13 @@ int main(int argc, char *argv[]) {
 	}
 
 	pthread_mutex_lock(&mtx);
+	SendDeleteAllGroupsFlags(&groups);
+	pthread_mutex_unlock(&mtx);
+	while(AllAppsClosed(&groups) == false);
+	pthread_mutex_lock(&mtx);
 	if (DeleteGroupList(&groups) == -1)
 		printf("Error in deleting the group list\n");
 	pthread_mutex_unlock(&mtx);
-
-	// CloseAllFileDesc(&groups);
 
 	char cmd[BUF_SIZE] = "CloseConnection";
 	if (sendto(sfd_auth, cmd, sizeof(cmd), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(cmd)) {

@@ -65,6 +65,8 @@ bool CloseApp(struct Group ** head_ref, char * name, int pid);
 
 bool IsWatchListOfGroup(struct Group * head, char * name, char * key);
 
+void SendDeleteGroupFlags(struct Group ** head_ref, char * name);
+
 // Given the name of the group and a key, this function deletes the entry in the Hashtable corresponding to a certain key
 // It return true is the key is correctly deleted and false otherwise
 // This function is called when the function "delete_value" of the app is called
@@ -77,6 +79,12 @@ int DeleteGroupAuthServer(char * g_name);
 // Function to be called when the user uses the "Delete Group" command
 // Return true if group was deleted or false if the group was not found
 bool DeleteGroupLocalServer(struct Group ** head_ref, char * name);
+
+void SendDeleteAllGroupsFlags(struct Group ** head_ref);
+
+bool AllAppsClosed(struct Group ** head_ref);
+
+bool AllAppsFromGroupClosed(struct Group ** head_ref, char * name);
 
 // Delest all groups in the Local Server in both the Local and Authentification Server
 int DeleteGroupList(struct Group **  head_ref);

@@ -17,6 +17,7 @@ pthread_t callback_pid;
 int cfd_cb = -1;
 struct sockaddr_un cl_addr_cb;
 struct sockaddr_un sv_addr_cb;
+int exit_flag = 0;
 
 void callback_function(char * changed_key) {
 	printf("The key %s was changed\n", changed_key);
@@ -32,7 +33,7 @@ int main(int argc, char *argv[]) {
 	char * value_in;
 
 	size_t len;
-	while (1) {
+	while (exit_flag == 0) {
 		fgets(str, sizeof(str), stdin);
 		if (strcmp(str, "establish_connection\n") == 0) {
 			printf("Insert group id:\n");

@@ -20,6 +20,7 @@ extern pthread_t callback_pid;
 extern int cfd_cb;
 extern struct sockaddr_un cl_addr_cb;
 extern struct sockaddr_un sv_addr_cb;
+extern int exit_flag;
 
 typedef void (*callback)(char*);
 
@@ -119,6 +120,7 @@ void * callback_thread(void * arg) {
 			else {
 				printf("App: Error in closing connection due to deletion of group in server\n");
 			}
+			exit_flag = 1;
 			break;
 		}
 		flag = 0;
@@ -237,6 +239,7 @@ int establish_connection (char * group_id, char * secret) {
 	memset(&cl_addr_cb, 0, sizeof(struct sockaddr_un));
 	cl_addr_cb.sun_family = AF_UNIX;
 	snprintf(cl_addr_cb.sun_path, sizeof(cl_addr_cb.sun_path), "/tmp/app_socket_cb_%ld", (long) pthread_self());
+	// printf("Client address: %s\n", cl_addr_cb.sun_path);
 
 	remove(cl_addr_cb.sun_path);
 	unlink(cl_addr_cb.sun_path);
@@ -253,18 +256,27 @@ int establish_connection (char * group_id, char * secret) {
 	memset(&sv_addr_cb, 0, sizeof(struct sockaddr_un));
 	sv_addr_cb.sun_family = AF_UNIX;
 	strncpy(sv_addr_cb.sun_path, SV_SOCK_PATH_CB, sizeof(sv_addr_cb.sun_path) - 1);
+	// printf("Server address: %s\n", sv_addr_cb.sun_path);
+	
+	// usleep(50);
 
 	// Connect to server
-	if (connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un)) == -1) {
-		printf("App: Error in connect\n");
-		printf("Value of errno: %d\n", errno);
-		// printf("The error message is: %s\n", strerror(errno));
-		perror("Message from perror");
-		if (close(cfd_cb) == -1) {
-			printf("App: Error in closing socket\n");
+	int counter = 0;
+	int sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));
+	while(sucess_flag == -1) {
+		if (counter > 5) {
+			printf("App: Error in connect\n");
+			printf("Value of errno: %d\n", errno);
+			printf("The error message is: %s\n", strerror(errno));
+			perror("Message from perror");
+			if (close(cfd_cb) == -1) {
+				printf("App: Error in closing socket\n");
+				exit(-1);
+			}
 			exit(-1);
 		}
-		exit(-1);
+		counter++;
+		sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));
 	}
 
 	printf("Connection accepted\n");
