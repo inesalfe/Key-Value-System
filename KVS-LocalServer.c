@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <errno.h>
 #include "groupList.h"
+#include "appList.h"
 
 #define SV_SOCK_PATH "/tmp/server_sock"
 #define SV_SOCK_PATH_CB "/tmp/server_sock_cb"
@@ -34,7 +35,7 @@ struct sockaddr_in sv_addr_auth;
 int sfd_auth;
 struct sockaddr_un sv_addr_cb;
 
-int put_value (char * group_name, int * app_fd, int * fd_callback, int * pid) {
+int put_value (char * group_name, int * app_fd, int * pid) {
 
 	char temp_key[BUF_SIZE] = {0};
 	char temp_value[BUF_SIZE] = {0};
@@ -59,24 +60,40 @@ int put_value (char * group_name, int * app_fd, int * fd_callback, int * pid) {
 		return -2;
 	}
 	if (FindKeyValueLocalServer(groups, group_name, temp_key) && IsWatchListOfGroup(groups, group_name, temp_key)) {
-		int flag = 1;
-		if (send(*fd_callback, &flag, sizeof(int), 0) != sizeof(int)) {
-			printf("Local Server: Error in sending flag\n");
-			return -2;
-		}
-		flag = -1;
-		numBytes = recv(*fd_callback, &flag, sizeof(int), 0);
-		if (numBytes == -1) {
-			printf("Local Server: Error in reading flag\n");
-			return -2;
-		}
-		if (flag == -1) {
-			printf("Local Server: Error in receiving ready flag\n");
-			return -2;
-		}
-		if (send(*fd_callback, temp_key, sizeof(temp_key), 0) != sizeof(temp_key)) {
-			printf("Local Server: Error in sending changed key\n");
-			return -2;
+		struct Group * current = groups;
+		while (current != NULL)
+		{
+			if (strcmp(current->group_name, group_name) == 0) {
+				struct App * curr = current->apps;
+				struct App * next;
+				while (curr != NULL)
+				{
+					next = curr->next;
+					if(IsWatchList(curr->wlist, temp_key)) {
+						int flag = 1;
+						if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
+							printf("Local Server: Error in sending flag\n");
+							return -2;
+						}
+						flag = -1;
+						numBytes = recv(curr->fd_cb, &flag, sizeof(int), 0);
+						if (numBytes == -1) {
+							printf("Local Server: Error in reading flag\n");
+							return -2;
+						}
+						if (flag == -1) {
+							printf("Local Server: Error in receiving ready flag\n");
+							return -2;
+						}
+						if (send(curr->fd_cb, temp_key, sizeof(temp_key), 0) != sizeof(temp_key)) {
+							printf("Local Server: Error in sending changed key\n");
+							return -2;
+						}
+					}
+					curr = next;
+				}
+			}
+			current = current->next;
 		}
 	}
 	if (AddKeyValueToGroup(groups, group_name, *pid, temp_key, temp_value))
@@ -299,7 +316,7 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
-	printf("Callback socket: %d\n", fd_cb);
+	// printf("Callback socket: %d\n", fd_cb);
 
 	error_flag = 1;
 
@@ -330,6 +347,11 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
+	printf("Connection established with app:\n");
+	printf("PID: %ld\n", pid);
+	printf("File Descriptor: %d\n", cfd);
+	printf("Callback File Descriptor: %d\n", fd_cb);
+
 	// End of establish connection
 
 	// This flag is sent to the app after each function indicating sucess
@@ -343,7 +365,7 @@ void * thread_func(void * arg) {
 		sucess_flag = -1;
 		if (func_code == 0) {
 			pthread_mutex_lock(&mtx);
-			sucess_flag = put_value(group_id_app, &cfd, &fd_cb, &pid);
+			sucess_flag = put_value(group_id_app, &cfd, &pid);
 			if (sucess_flag == -2) {
 				printf("Fatal communication error in 'put_value' operation\n");
 				pthread_exit(NULL);

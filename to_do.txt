@@ -18,3 +18,8 @@ URGENTE
 - Print secret quando se cria o grupo
 - Sincronização
 - VALGRIND
+
+
+- Connection time, meter em unidades de gente crescida
+- close_connection sem conexão
+- se fechar o auth server, fechar os servidores locais

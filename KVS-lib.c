@@ -1,3 +1,4 @@
+#define _BSD_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -138,6 +139,8 @@ int establish_connection (char * group_id, char * secret) {
 		return -16;
 	}
 
+	printf("App PID: %ld\n", (long) getpid());
+
 	// Assignment of server address
 	cfd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (cfd == -1) {
@@ -156,7 +159,7 @@ int establish_connection (char * group_id, char * secret) {
 	// App address assignment with PID
 	memset(&cl_addr, 0, sizeof(struct sockaddr_un));
 	cl_addr.sun_family = AF_UNIX;
-	snprintf(cl_addr.sun_path, sizeof(cl_addr.sun_path), "/tmp/app_socket_%ld", (long) pthread_self());
+	snprintf(cl_addr.sun_path, sizeof(cl_addr.sun_path), "/tmp/app_socket_%ld", (long) getpid());
 
 	remove(cl_addr.sun_path);
 	unlink(cl_addr.sun_path);
@@ -212,7 +215,7 @@ int establish_connection (char * group_id, char * secret) {
 	}
 
 	// Sending the group_id to the server
-	if (send(cfd, group_id, sizeof(group_id), 0) != sizeof(group_id)) {
+	if (send(cfd, group_id, strlen(group_id), 0) != strlen(group_id)) {
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
 			return -1;
@@ -246,7 +249,7 @@ int establish_connection (char * group_id, char * secret) {
 	}
 
 	// Sending secret
-	if (send(cfd, secret, sizeof(secret), 0) != sizeof(secret)) {
+	if (send(cfd, secret, strlen(secret), 0) != strlen(secret)) {
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
 			return -1;
@@ -305,7 +308,7 @@ int establish_connection (char * group_id, char * secret) {
 	sv_addr_cb.sun_family = AF_UNIX;
 	strncpy(sv_addr_cb.sun_path, SV_SOCK_PATH_CB, sizeof(sv_addr_cb.sun_path) - 1);
 	// printf("Server address: %s\n", sv_addr_cb.sun_path);
-	
+
 	// usleep(50);
 
 	// Connect to server
@@ -340,7 +343,7 @@ int establish_connection (char * group_id, char * secret) {
 			printf("App: Error in closing socket\n");
 			return -1;
 		}
-		cfd_cb = -1;		
+		cfd_cb = -1;
 		return -13;
 	}
 
@@ -363,7 +366,7 @@ int establish_connection (char * group_id, char * secret) {
 			printf("App: Error in closing socket\n");
 			return -1;
 		}
-		cfd_cb = -1;		
+		cfd_cb = -1;
 		return -8;
 	}
 	if (check_secret != 1) {
@@ -413,7 +416,7 @@ int put_value (char * key, char * value) {
 	}
 
 	// Send the key
-	if (send(cfd, key, sizeof(key), 0) != sizeof(key)) {
+	if (send(cfd, key, strlen(key), 0) != strlen(key)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
 		return -6;
 	}
@@ -434,7 +437,7 @@ int put_value (char * key, char * value) {
 	}
 
 	// Sending the value
-	if (send(cfd, value, sizeof(value), 0) != sizeof(value)) {
+	if (send(cfd, value, strlen(value), 0) != strlen(value)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
 		return -6;
 	}
@@ -475,7 +478,7 @@ int get_value (char * key, char ** value) {
 	}
 
 	// Send the key
-	if (send(cfd, key, sizeof(key), 0) != sizeof(key)) {
+	if (send(cfd, key, strlen(key), 0) != strlen(key)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
 		return -6;
 	}
@@ -536,7 +539,7 @@ int delete_value (char * key) {
 	}
 
 	// Send the key
-	if (send(cfd, key, sizeof(key), 0) != sizeof(key)) {
+	if (send(cfd, key, strlen(key), 0) != strlen(key)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
 		return -6;
 	}
@@ -610,7 +613,7 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 	}
 
 	// Send the key
-	if (send(cfd, key, sizeof(key), 0) != sizeof(key)) {
+	if (send(cfd, key, strlen(key), 0) != strlen(key)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
 		return -6;
 	}

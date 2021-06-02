@@ -12,7 +12,7 @@
 #include "hash.h"
 
 #define BUF_SIZE 100
-#define SIZE_IN 1000
+#define SIZE_IN 50000
 #define BACKLOG 5
 
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
@@ -219,7 +219,7 @@ void * thread_func(void * arg) {
 					char temp_secret[BUF_SIZE] = {0};
 					strcpy(temp_secret, ht_search(table, g_name));
 					// Send secret
-					if (sendto(sfd, temp_secret, sizeof(temp_secret), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(temp_secret)) {
+					if (sendto(sfd, temp_secret, strlen(temp_secret), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != strlen(temp_secret)) {
 						printf("Authentification Server: Error in sendto\n");
 						pthread_exit(NULL);
 					}
@@ -238,10 +238,8 @@ void * thread_func(void * arg) {
 						printf("Authentification Server: Error in recvfrom\n");
 						pthread_exit(NULL);
 					}
-					// printf("Group to be deleted: %s\n", g_name);
 					// Check if group name exists
 					// If it doesn't ready_flag = -1, else do nothing.
-					// printf("%s\n", ht_search(table, g_name));
 					if (ht_search(table, g_name) == NULL) {
 						ready_flag = -1;
 						printf("Group name doesn't exist\n");

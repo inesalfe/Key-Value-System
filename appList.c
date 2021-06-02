@@ -163,6 +163,15 @@ void DeleteAppList(struct App ** head_ref) {
 
 void AddKeyToList(struct WatchList ** head_ref, char * key) {
 
+	struct WatchList * current = * head_ref;
+	while (current != NULL)
+	{
+		if (strcmp(current->key, key) == 0) {
+			return;
+		}
+		current = current->next;
+	}
+
 	struct WatchList * new_node = (struct WatchList *) calloc(1, sizeof(struct WatchList));
 	struct WatchList * last = * head_ref;
 	strcpy(new_node->key, key);

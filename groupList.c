@@ -32,7 +32,7 @@ int CreateGroupAuthServer(char * g_name, char * secret) {
 		return -1;
 	}
 
-	if (sendto(sfd_auth, g_name, sizeof(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(g_name)) {
+	if (sendto(sfd_auth, g_name, strlen(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != strlen(g_name)) {
 		printf("Server: Error in sendto\n");
 		return -1;
 	}
@@ -148,7 +148,7 @@ int FindGroupAuthServer(char * g_name) {
 		return -1;
 	}
 
-	if (sendto(sfd_auth, g_name, sizeof(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(g_name)) {
+	if (sendto(sfd_auth, g_name, strlen(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != strlen(g_name)) {
 		printf("Server: Error in sendto\n");
 		return -1;
 	}
@@ -199,7 +199,7 @@ char * GetSecretFromAuthServer(char * g_name) {
 		return NULL;
 	}
 
-	if (sendto(sfd_auth, g_name, sizeof(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(g_name)) {
+	if (sendto(sfd_auth, g_name, strlen(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != strlen(g_name)) {
 		printf("Server: Error in sendto\n");
 		return NULL;
 	}
@@ -388,7 +388,7 @@ int DeleteGroupAuthServer(char * g_name) {
 		return -1;
 	}
 
-	if (sendto(sfd_auth, g_name, sizeof(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(g_name)) {
+	if (sendto(sfd_auth, g_name, strlen(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != strlen(g_name)) {
 		printf("Server: Error in sendto\n");
 		return -1;
 	}
@@ -537,7 +537,7 @@ bool AllAppsFromGroupClosed(struct Group ** head_ref, char * name) {
 		}
 		current = current->next;
 	}
-	return true;	
+	return true;
 
 }
 
