@@ -84,7 +84,6 @@ void * callback_thread(void * arg) {
 
 	size_t numBytes;
 	int flag = 0;
-	int ready_flag = 1;
 	char changed_key[BUF_SIZE];
 	while(1) {
 		numBytes = recv(cfd_cb, &flag, sizeof(int), 0);
@@ -93,7 +92,9 @@ void * callback_thread(void * arg) {
 			break;
 		}
 		if (flag == 1) {
-			if (send(cfd, &ready_flag, sizeof(int), 0) != sizeof(int)) {
+			int ready_flag = 1;
+			printf("App: Received flag for changed key\n");
+			if (send(cfd_cb, &ready_flag, sizeof(int), 0) != sizeof(int)) {
 				printf("App: Error in sending ready flag\n");
 				break;
 			}
@@ -102,6 +103,7 @@ void * callback_thread(void * arg) {
 				printf("App: Error in receiving changed flag\n");
 				break;
 			}
+			printf("App: The changed key was %s\n", changed_key);
 			struct thread_args * current = cb_info;
 			while (current != NULL)
 			{

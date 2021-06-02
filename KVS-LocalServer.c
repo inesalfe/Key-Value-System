@@ -71,7 +71,7 @@ int put_value (char * group_name, int * app_fd, int * fd_callback, int * pid) {
 			return -2;
 		}
 		if (flag == -1) {
-			printf("Local Server: Error in receiving ready flag");
+			printf("Local Server: Error in receiving ready flag\n");
 			return -2;
 		}
 		if (send(*fd_callback, temp_key, sizeof(temp_key), 0) != sizeof(temp_key)) {
