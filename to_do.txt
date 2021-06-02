@@ -11,15 +11,6 @@
 - Lidar com o AuthServer? - várias conexões com servidores
 - Fechar ligações
 
-URGENTE
-
-- Cena bloqueante estúpida
-- Gerar o segredo - pode ser só uma string aleatória? E criar novos ficheiros de teste para se poder inserir o segredo através do teclado
-- Print secret quando se cria o grupo
-- Sincronização
-- VALGRIND
 
 
-- Connection time, meter em unidades de gente crescida
-- close_connection sem conexão
 - se fechar o auth server, fechar os servidores locais

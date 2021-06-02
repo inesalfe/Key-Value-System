@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include "appList.h"
 
+static const char default_format[] = "%a %d-%m-%Y %H:%M:%S";
+
 void PrintAppList(struct App * app)
 {
 	int counter = 0;
@@ -21,8 +23,23 @@ void PrintAppList(struct App * app)
 			printf("Status: Closed\n");
 		else
 			printf("Status: Connected\n");
-		printf("Connection time: %f\n", app->start.tv_sec + (double) app->start.tv_nsec / 1.0e9);
-		printf("Close Connection time: %f\n", app->stop.tv_sec + (double) app->stop.tv_nsec / 1.0e9);
+		time_t t_c = (time_t) (app->start.tv_sec + (double) app->start.tv_nsec / 1.0e9);
+		time_t t_d = (time_t) (app->stop.tv_sec + (double) app->stop.tv_nsec / 1.0e9);
+		const char * format = default_format;
+		struct tm lt_c;
+		struct tm lt_d;
+		char res[80];
+		localtime_r(&t_c, &lt_c);
+		localtime_r(&t_d, &lt_d);
+		strftime(res, sizeof(res), format, &lt_c);
+		printf("Connection time: %s\n", res);
+		strftime(res, sizeof(res), format, &lt_d);
+		if(app->isClosed)
+			printf("Close Connection time: %s\n", res);
+		else
+			printf("Close Connection time: -\n");
+		// printf("Connection time: %f\n", app->start.tv_sec + (double) app->start.tv_nsec / 1.0e9);
+		// printf("Close Connection time: %f\n", app->stop.tv_sec + (double) app->stop.tv_nsec / 1.0e9);
 		if (app->isClosed)
 			printf("Connected time interval: %f\n", app->delta_t);
 		else {
