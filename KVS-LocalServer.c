@@ -277,7 +277,7 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
-	printf("First connection established\n");
+	// printf("First connection established\n");
 
 	// printf("After bind\n");
 
@@ -299,7 +299,7 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
-	printf("Connection accepted\n");
+	printf("Callback socket: %d\n", fd_cb);
 
 	error_flag = 1;
 

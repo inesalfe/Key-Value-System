@@ -103,7 +103,7 @@ void * callback_thread(void * arg) {
 				printf("App: Error in receiving changed flag\n");
 				break;
 			}
-			printf("App: The changed key was %s\n", changed_key);
+			// printf("App: The changed key was %s\n", changed_key);
 			struct thread_args * current = cb_info;
 			while (current != NULL)
 			{
@@ -164,12 +164,22 @@ int establish_connection (char * group_id, char * secret) {
 	// Bind app
 	if (bind(cfd, (struct sockaddr *) &cl_addr, sizeof(struct sockaddr_un)) == -1) {
 		printf("App: Error in binding\n");
+		if (close(cfd) == -1) {
+			printf("App: Error in closing socket\n");
+			return -1;
+		}
+		cfd = -1;
 		return -11;
 	}
 
 	// Connect to server
 	if (connect(cfd, (struct sockaddr *) &sv_addr, sizeof(struct sockaddr_un)) == -1) {
 		printf("App: Error in connect\n");
+		if (close(cfd) == -1) {
+			printf("App: Error in closing socket\n");
+			return -1;
+		}
+		cfd = -1;
 		return -12;
 	}
 
@@ -182,12 +192,22 @@ int establish_connection (char * group_id, char * secret) {
 	numBytes = recv(cfd, &check_connection, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the established connection\n");
+		if (close(cfd) == -1) {
+			printf("App: Error in closing socket\n");
+			return -1;
+		}
+		cfd = -1;
 		return -13;
 	}
 
 	// If the connection flag is not 1, the connection was not established
 	if (check_connection != 1) {
 		printf("App: Error in establishing connection to the server\n");
+		if (close(cfd) == -1) {
+			printf("App: Error in closing socket\n");
+			return -1;
+		}
+		cfd = -1;
 		return -14;
 	}
 
@@ -197,6 +217,7 @@ int establish_connection (char * group_id, char * secret) {
 			printf("App: Error in closing socket\n");
 			return -1;
 		}
+		cfd = -1;
 		printf("App: Error in sending key / group_id / value / secret\n");
 		return -6;
 	}
@@ -205,6 +226,11 @@ int establish_connection (char * group_id, char * secret) {
 	numBytes = recv(cfd, &check_group, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the sent key / group_id / secret\n");
+		if (close(cfd) == -1) {
+			printf("App: Error in closing socket\n");
+			return -1;
+		}
+		cfd = -1;
 		return -8;
 	}
 
@@ -214,6 +240,7 @@ int establish_connection (char * group_id, char * secret) {
 			printf("App: Error in closing socket\n");
 			return -1;
 		}
+		cfd = -1;
 		printf("App: Key / group_id not existing\n");
 		return -7;
 	}
@@ -224,6 +251,7 @@ int establish_connection (char * group_id, char * secret) {
 			printf("App: Error in closing socket\n");
 			return -1;
 		}
+		cfd = -1;
 		printf("App: Error in sending key / group_id / value / secret\n");
 		return -6;
 	}
@@ -231,10 +259,15 @@ int establish_connection (char * group_id, char * secret) {
 	int enable = 1;
 	if (setsockopt(cfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
 	    printf("setsockopt(SO_REUSEADDR) failed");
+	    if (close(cfd) == -1) {
+			printf("App: Error in closing socket\n");
+			return -1;
+		}
+		cfd = -1;
 	    return -15;
 	}
 
-	printf("First connection established\n");
+	// printf("First connection established\n");
 
 	// Assignment of server address
 	cfd_cb = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -242,6 +275,8 @@ int establish_connection (char * group_id, char * secret) {
 		printf("App: Error in socket creation / Socket not created\n");
 		return -2;
 	}
+
+	printf("Callback socket: %d\n", cfd_cb);
 
 	// App address assignment with PID
 	memset(&cl_addr_cb, 0, sizeof(struct sockaddr_un));
@@ -255,6 +290,11 @@ int establish_connection (char * group_id, char * secret) {
 	// Bind app
 	if (bind(cfd_cb, (struct sockaddr *) &cl_addr_cb, sizeof(struct sockaddr_un)) == -1) {
 		printf("App: Error in binding\n");
+		if (close(cfd_cb) == -1) {
+			printf("App: Error in closing socket\n");
+			return -1;
+		}
+		cfd_cb = -1;
 		return -11;
 	}
 
@@ -288,7 +328,7 @@ int establish_connection (char * group_id, char * secret) {
 		sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));
 	}
 
-	printf("Connection accepted\n");
+	// printf("Connection accepted\n");
 
 	check_connection = -1;
 
@@ -296,6 +336,11 @@ int establish_connection (char * group_id, char * secret) {
 	numBytes = recv(cfd_cb, &check_connection, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the established connection\n");
+		if (close(cfd_cb) == -1) {
+			printf("App: Error in closing socket\n");
+			return -1;
+		}
+		cfd_cb = -1;		
 		return -13;
 	}
 
@@ -306,6 +351,7 @@ int establish_connection (char * group_id, char * secret) {
 			printf("App: Error in closing socket\n");
 			return -1;
 		}
+		cfd_cb = -1;
 		return -14;
 	}
 
@@ -313,6 +359,11 @@ int establish_connection (char * group_id, char * secret) {
 	numBytes = recv(cfd, &check_secret, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the sent key / group_id / secret\n");
+		if (close(cfd_cb) == -1) {
+			printf("App: Error in closing socket\n");
+			return -1;
+		}
+		cfd_cb = -1;		
 		return -8;
 	}
 	if (check_secret != 1) {
@@ -320,6 +371,7 @@ int establish_connection (char * group_id, char * secret) {
 			printf("App: Error in closing socket\n");
 			return -1;
 		}
+		cfd = -1;
 		printf("App: Incorrect secret\n");
 		return -9;
 	}
