@@ -79,7 +79,7 @@ int close_connection() {
 void * callback_thread(void * arg) {
 
 	if (pthread_detach(pthread_self()) != 0) {
-		printf("Local Server: Error in 'pthread_detach'\n");
+		printf("App: Error in 'pthread_detach'\n");
 	}
 
 	size_t numBytes;
@@ -226,6 +226,12 @@ int establish_connection (char * group_id, char * secret) {
 		return -6;
 	}
 
+	int enable = 1;
+	if (setsockopt(cfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+	    printf("setsockopt(SO_REUSEADDR) failed");
+	    return -15;
+	}
+
 	printf("First connection established\n");
 
 	// Assignment of server address
@@ -276,6 +282,7 @@ int establish_connection (char * group_id, char * secret) {
 			exit(-1);
 		}
 		counter++;
+		usleep(50);
 		sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));
 	}
 

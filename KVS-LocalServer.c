@@ -32,6 +32,7 @@ struct Group * groups = NULL;
 struct sockaddr_in sv_addr_auth;
 // File descriptor for the connection to the AuthServer
 int sfd_auth;
+struct sockaddr_un sv_addr_cb;
 
 int put_value (char * group_name, int * app_fd, int * fd_callback, int * pid) {
 
@@ -199,11 +200,11 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
-	struct sockaddr_un sv_addr_cb;
 	memset(&sv_addr_cb, 0, sizeof(struct sockaddr_un));
 
 	// Clean socket path
 	remove(SV_SOCK_PATH_CB);
+	unlink(SV_SOCK_PATH_CB);
 
 	// Bind
 	sv_addr_cb.sun_family = AF_UNIX;
@@ -589,6 +590,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	remove(sv_addr.sun_path);
+	remove(sv_addr_cb.sun_path);
 
 	printf("Exiting Local Server...\n");
 

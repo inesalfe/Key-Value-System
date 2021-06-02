@@ -23,7 +23,11 @@ void callback_function(char * changed_key) {
 	printf("The key %s was changed\n", changed_key);
 }
 
-int main(int argc, char *argv[]) {
+void * thread_f(void * arg) {
+
+	if (pthread_detach(pthread_self()) != 0) {
+		printf("App: Error in 'pthread_detach'\n");
+	}
 
 	char str[BUF_SIZE] = {0};
 	char g_name[BUF_SIZE] = {0};
@@ -33,7 +37,7 @@ int main(int argc, char *argv[]) {
 	char * value_in;
 
 	size_t len;
-	while (exit_flag == 0) {
+	while (1) {
 		fgets(str, sizeof(str), stdin);
 		if (strcmp(str, "establish_connection\n") == 0) {
 			printf("Insert group id:\n");
@@ -119,10 +123,26 @@ int main(int argc, char *argv[]) {
 			else
 				printf("Error in 'close_connection'\n");
 			pthread_cancel(callback_pid);
+			exit_flag = 2;
 			break;
 		}
 		else
 			printf("Unknown Command\n");
+	}
+
+	pthread_exit(NULL);
+}
+
+int main(int argc, char *argv[]) {
+
+
+	pthread_t pid;
+	pthread_create(&pid, NULL, thread_f, NULL);
+
+	while(exit_flag == 0);
+
+	if (exit_flag == 1) {
+		pthread_cancel(pid);
 	}
 
 	return 0;
