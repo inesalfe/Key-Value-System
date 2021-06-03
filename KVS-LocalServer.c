@@ -378,6 +378,14 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
+	if (error_flag == 0) {
+		printf("Local Server: Incorrect secret\n");
+		if (close(cfd) == -1) {
+			printf("Local Server: Error in closing socket file descriptor\n");
+		}
+		pthread_exit(NULL);
+	}
+
 	// Print information for the connected app
 	printf("Connection established with app with PID %ld\n", pid);
 

@@ -79,8 +79,14 @@ void * thread_f(void * arg) {
 			// Calling function from the KVS-lib library
 			if (establish_connection(g_name, secret) == 0)
 				printf("Successful 'establish_connection'\n");
-			else
+			else {
 				printf("Error in 'establish_connection'\n");
+				// Canceling the callback thread
+				pthread_cancel(callback_tid);
+				// Setting the exit flag so that the cicle in the main function can be breaked
+				exit_flag = 2;
+				break;				
+			}
 		}
 		else if (strcmp(str, "put_value\n") == 0) {
 			// Getting the key from the keyboard
