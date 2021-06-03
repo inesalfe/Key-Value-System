@@ -14,32 +14,44 @@
 
 #define BUF_SIZE 100
 
+// File descriptor for the UNIX socket
 extern int cfd;
+// App adress
 extern struct sockaddr_un cl_addr;
+// Local Server adress
 extern struct sockaddr_un sv_addr;
+// Thread id for the callback thread
 extern pthread_t callback_pid;
+// File descript for the UNIX socket used for int the callback thread
 extern int cfd_cb;
+// App adress for the callback thread
 extern struct sockaddr_un cl_addr_cb;
+// Local Server adress for the callback thread
 extern struct sockaddr_un sv_addr_cb;
+// Exit flag used to close the sockets properly
 extern int exit_flag;
 
+// Shortcut to define the structure of the callback function
 typedef void (*callback)(char*);
 
-struct thread_args {
+// Node to be used in the linked list - contains the key and the callback function
+struct cb_info {
 	char key[BUF_SIZE];
 	callback cb;
-	struct thread_args * next;
+	struct cb_info * next;
 };
 
-struct thread_args * cb_info = NULL;
+// Head node
+struct cb_info * cb_list = NULL;
 
 int close_connection() {
 
+	// Function code definition so that the local server knows which set of instructions to execute
 	int func_code = 4;
-	ssize_t numBytes;
 
-	struct thread_args * current = cb_info;
-	struct thread_args * next;
+	// Free the linked list
+	struct cb_info * current = cb_list;
+	struct cb_info * next;
 
 	while (current != NULL)
 	{
@@ -48,28 +60,32 @@ int close_connection() {
 		current = next;
 	}
 
-	cb_info = NULL;
+	cb_list = NULL;
 
 	if (cfd == -1) {
 		printf("App: Error in socket creation / Socket not created\n");
 		return -2;
 	}
 
+	// Send the function name to the server
 	if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
 		printf("App: Error in sending function code\n");
 		return -3;
 	}
 
+	// Close file descriptor
 	if (close(cfd) == -1) {
 		printf("App: Error in closing socket\n");
 		return -1;
 	}
 
+	// Close callback thread file descriptor
 	if (close(cfd_cb) == -1) {
 		printf("App: Error in closing socket\n");
 		return -1;
-	}
+	}	
 
+	// Remove sockets paths to avoid binding problems in the next execution
 	remove(cl_addr.sun_path);
 	remove(cl_addr_cb.sun_path);
 
@@ -79,12 +95,16 @@ int close_connection() {
 
 void * callback_thread(void * arg) {
 
+	// To use the pthread cancel in the main function we need to use detach first, to that the memory can be correctly released
 	if (pthread_detach(pthread_self()) != 0) {
 		printf("App: Error in 'pthread_detach'\n");
 	}
 
+	// Number of received bytes - will be used to check for errors
 	size_t numBytes;
+	// Flag to check if we are to execute a callback function or to close the app
 	int flag = 0;
+	// Received changed key
 	char changed_key[BUF_SIZE];
 	while(1) {
 		numBytes = recv(cfd_cb, &flag, sizeof(int), 0);
@@ -95,43 +115,49 @@ void * callback_thread(void * arg) {
 		if (flag == 1) {
 			int ready_flag = 1;
 			printf("App: Received flag for changed key\n");
+			// Send ready flag saying that the app is ready to receive the changed key
 			if (send(cfd_cb, &ready_flag, sizeof(int), 0) != sizeof(int)) {
 				printf("App: Error in sending ready flag\n");
 				break;
 			}
+			// Receive the changed key
 			numBytes = recv(cfd_cb, changed_key, sizeof(changed_key), 0);
 			if (numBytes == -1) {
 				printf("App: Error in receiving changed flag\n");
 				break;
 			}
-			// printf("App: The changed key was %s\n", changed_key);
-			struct thread_args * current = cb_info;
+			// Search for the changed key in the callback linked list so that we know which function to execute
+			struct cb_info * current = cb_list;
 			while (current != NULL)
 			{
 				if (strcmp(current->key, changed_key) == 0) {
+					// Call the callback function for the changed key
 					current->cb(changed_key);
 				}
 				current = current->next;
 			}
+			// Clear changed key
 			memset(changed_key, 0, sizeof(changed_key));
 		}
 		else if (flag == -1) {
+			// Closing the connection
 			int sucess = close_connection();
 			if (sucess == 1) {
-				printf("App: Closing connection due to deletion of group in server\n");
+				printf("App: Closing connection due to deletion of group or closed server\n");
 			}
 			else {
-				printf("App: Error in closing connection due to deletion of group in server\n");
+				printf("App: Error in closing connection due to deletion of group or closed server\n");
 			}
 			exit_flag = 1;
 			break;
 		}
+		// Reset flag
 		flag = 0;
 	}
+
 	pthread_exit(NULL);
 }
 
-// Needs testing for different errors and use of sterror
 int establish_connection (char * group_id, char * secret) {
 
 	if (cfd != -1) {
@@ -139,6 +165,7 @@ int establish_connection (char * group_id, char * secret) {
 		return -16;
 	}
 
+	// Print app PID
 	printf("App PID: %ld\n", (long) getpid());
 
 	// Assignment of server address
@@ -147,9 +174,6 @@ int establish_connection (char * group_id, char * secret) {
 		printf("App: Error in socket creation / Socket not created\n");
 		return -2;
 	}
-
-	// Clean socket path
-	// remove(SV_SOCK_PATH);
 
 	// Server address assignment
 	memset(&sv_addr, 0, sizeof(struct sockaddr_un));
@@ -161,6 +185,7 @@ int establish_connection (char * group_id, char * secret) {
 	cl_addr.sun_family = AF_UNIX;
 	snprintf(cl_addr.sun_path, sizeof(cl_addr.sun_path), "/tmp/app_socket_%ld", (long) getpid());
 
+	// Unlink the app path before binding
 	remove(cl_addr.sun_path);
 	unlink(cl_addr.sun_path);
 
@@ -186,6 +211,7 @@ int establish_connection (char * group_id, char * secret) {
 		return -12;
 	}
 
+	// Number of received bytes - will be used to check for errors
 	ssize_t numBytes;
 	int check_connection = -1;
 	int check_group = -1;
@@ -259,6 +285,7 @@ int establish_connection (char * group_id, char * secret) {
 		return -6;
 	}
 
+	// Avois using the same socket
 	int enable = 1;
 	if (setsockopt(cfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
 	    printf("setsockopt(SO_REUSEADDR) failed");
@@ -270,23 +297,19 @@ int establish_connection (char * group_id, char * secret) {
 	    return -15;
 	}
 
-	// printf("First connection established\n");
-
-	// Assignment of server address
+	// Assignment of socket for the callback thread
 	cfd_cb = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (cfd_cb == -1) {
 		printf("App: Error in socket creation / Socket not created\n");
 		return -2;
 	}
 
-	printf("Callback socket: %d\n", cfd_cb);
-
-	// App address assignment with PID
+	// App address assignment with PID for the callback thread
 	memset(&cl_addr_cb, 0, sizeof(struct sockaddr_un));
 	cl_addr_cb.sun_family = AF_UNIX;
 	snprintf(cl_addr_cb.sun_path, sizeof(cl_addr_cb.sun_path), "/tmp/app_socket_cb_%ld", (long) pthread_self());
-	// printf("Client address: %s\n", cl_addr_cb.sun_path);
 
+	// Unlink app address before bind
 	remove(cl_addr_cb.sun_path);
 	unlink(cl_addr_cb.sun_path);
 
@@ -301,17 +324,13 @@ int establish_connection (char * group_id, char * secret) {
 		return -11;
 	}
 
-	// remove(SV_SOCK_PATH_CB);
-
 	// Server address assignment
 	memset(&sv_addr_cb, 0, sizeof(struct sockaddr_un));
 	sv_addr_cb.sun_family = AF_UNIX;
 	strncpy(sv_addr_cb.sun_path, SV_SOCK_PATH_CB, sizeof(sv_addr_cb.sun_path) - 1);
-	// printf("Server address: %s\n", sv_addr_cb.sun_path);
-
-	// usleep(50);
 
 	// Connect to server
+	// After 5 tries we output the error
 	int counter = 0;
 	int sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));
 	while(sucess_flag == -1) {
@@ -327,12 +346,12 @@ int establish_connection (char * group_id, char * secret) {
 			exit(-1);
 		}
 		counter++;
+		// Small wait before another try
 		usleep(50);
 		sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));sucess_flag = connect(cfd_cb, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un));
 	}
 
-	// printf("Connection accepted\n");
-
+	// Reuse of the check_connection flag
 	check_connection = -1;
 
 	// Wait for flag saying that the connectiong was established
@@ -358,7 +377,7 @@ int establish_connection (char * group_id, char * secret) {
 		return -14;
 	}
 
-	// receiving flag for the secret
+	// Receiving flag for the secret
 	numBytes = recv(cfd, &check_secret, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the sent key / group_id / secret\n");
@@ -369,6 +388,7 @@ int establish_connection (char * group_id, char * secret) {
 		cfd_cb = -1;
 		return -8;
 	}
+	// Incorrect Secret
 	if (check_secret != 1) {
 		if (close(cfd) == -1 || close(cfd_cb) == -1) {
 			printf("App: Error in closing socket\n");
@@ -379,12 +399,13 @@ int establish_connection (char * group_id, char * secret) {
 		return -9;
 	}
 
-	pthread_create(&callback_pid, NULL, callback_thread, NULL);
+	// Create second thread for the callback function
+	pthread_create(&callback_tid, NULL, callback_thread, NULL);
+
 	return 0;
 
 }
 
-// Needs testing for different errors and use of sterror
 int put_value (char * key, char * value) {
 
 	if (cfd == -1) {
@@ -392,6 +413,7 @@ int put_value (char * key, char * value) {
 		return -2;
 	}
 
+	// Function code definition so that the local server knows which set of instructions to execute
 	int func_code = 0;
 
 	// Send the function name to the server
@@ -400,7 +422,9 @@ int put_value (char * key, char * value) {
 		return -3;
 	}
 
+	// Ready flag
 	int ready = -1;
+	// Number of received bytes - will be used to check for errors
 	ssize_t numBytes;
 
 	// See if server is ready to send the key
@@ -453,6 +477,7 @@ int get_value (char * key, char ** value) {
 		return -2;
 	}
 
+	// Function code definition so that the local server knows which set of instructions to execute
 	int func_code = 1;
 
 	// Send the function name to the server
@@ -461,8 +486,11 @@ int get_value (char * key, char ** value) {
 		return -3;
 	}
 
+	// Ready flag
 	int ready = -1;
+	// Length of the value so that we can allocate memory
 	int length = -1;
+	// Number of received bytes - will be used to check for errors
 	ssize_t numBytes;
 
 	// See if server is ready to send the key
@@ -514,6 +542,7 @@ int delete_value (char * key) {
 		return -2;
 	}
 
+	// Function code definition so that the local server knows which set of instructions to execute
 	int func_code = 2;
 
 	// Send the function code to the server
@@ -522,8 +551,11 @@ int delete_value (char * key) {
 		return -3;
 	}
 
+	// Ready flag
 	int ready = -1;
+	// Check key flag
 	int check_key = -1;
+	// Number of received bytes - will be used to check for errors
 	ssize_t numBytes;
 
 	// See if server is ready to receive the key
@@ -557,10 +589,12 @@ int delete_value (char * key) {
 		return -7;
 	}
 
-	struct thread_args * temp = cb_info, * prev;
+	// If the deleted key was in the callback list we need to delete it
+
+	struct cb_info * temp = cb_list, * prev;
 
 	if (temp != NULL && (strcmp(temp->key, key)==0)) {
-		cb_info = temp->next;
+		cb_list = temp->next;
 		free(temp);
 		return 1;
 	}
@@ -588,6 +622,7 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 		return -2;
 	}
 
+	// Function code definition so that the local server knows which set of instructions to execute
 	int func_code = 3;
 
 	// Send the function code to the server
@@ -596,8 +631,11 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 		return -3;
 	}
 
+	// Ready flag
 	int ready = -1;
+	// Check key flag
 	int check_key = -1;
+	// Number of received bytes - will be used to check for errors
 	ssize_t numBytes;
 
 	// See if server is ready to receive the key
@@ -631,7 +669,9 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 		return -7;
 	}
 
-	struct thread_args * current = cb_info;
+	// The key may already existe in the callback list
+	// We only have to change the callback function
+	struct cb_info * current = cb_list;
 	while (current != NULL)
 	{
 		if (strcmp(current->key, key) == 0) {
@@ -641,16 +681,18 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 		current = current->next;
 	}
 
-	struct thread_args * new_node = (struct thread_args *) calloc(1, sizeof(struct thread_args));
-	struct thread_args * last = cb_info;
+	// If it is not in the list, we need to add it
+
+	struct cb_info * new_node = (struct cb_info *) calloc(1, sizeof(struct cb_info));
+	struct cb_info * last = cb_list;
 
 	strcpy(new_node->key, key);
 	new_node->cb = callback_function;
 	new_node->next = NULL;
 
-	if (cb_info == NULL)
+	if (cb_list == NULL)
 	{
-		cb_info = new_node;
+		cb_list = new_node;
 		return 1;
 	}
 

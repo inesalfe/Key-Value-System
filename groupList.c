@@ -12,7 +12,7 @@
 extern struct sockaddr_in sv_addr_auth;
 extern int sfd_auth;
 
-int CreateGroupAuthServer(char * g_name, char * secret) {
+bool CreateGroupAuthServer(char * g_name, char * secret) {
 
 	char func_str[BUF_SIZE] = "NewGroup";
 	int ready_flag = -1;
@@ -44,7 +44,7 @@ int CreateGroupAuthServer(char * g_name, char * secret) {
 
 	if (ready_flag == -1) {
 		printf("Group name already exists\n");
-		return -1;
+		return false;
 	}
 
 	if (sendto(sfd_auth, secret, sizeof(secret), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(secret)) {
@@ -57,7 +57,10 @@ int CreateGroupAuthServer(char * g_name, char * secret) {
 		exit(-1);
 	}
 
-	return ready_flag;
+	if (ready_flag == -1)
+		return false;
+	else
+		return true;
 }
 
 char * CreateGroupLocalServer(struct Group ** head_ref, char * name) {
@@ -67,11 +70,12 @@ char * CreateGroupLocalServer(struct Group ** head_ref, char * name) {
 		return NULL;
 	}
 
+	// Create new node
+
 	struct Group * new_node = (struct Group *) calloc(1, sizeof(struct Group));
 	struct Group * last = * head_ref;
 
 	int len = 5;
-	// char * secret_temp = (char *) calloc (len+1, sizeof(char));
 	char * secret_temp = (char *) calloc (len+1, sizeof(char));
 	char charset[] = "0123456789"
 										 "abcdefghijklmnopqrstuvwxyz"
@@ -90,7 +94,9 @@ char * CreateGroupLocalServer(struct Group ** head_ref, char * name) {
 	char secret[BUF_SIZE] = {0};
 	strcpy(secret, secret_temp);
 
-	if(CreateGroupAuthServer(new_node->group_name, secret) == -1) {
+	// Create group in Authentification Server
+
+	if(CreateGroupAuthServer(new_node->group_name, secret) == false) {
 		return NULL;
 	}
 
@@ -98,16 +104,25 @@ char * CreateGroupLocalServer(struct Group ** head_ref, char * name) {
 	new_node->apps = NULL;
 	new_node->next = NULL;
 
+	// If the head in null, we set the head to the new node
+
 	if (* head_ref == NULL)
 	{
 		* head_ref = new_node;
 		return secret_temp;
 	}
 
+	// Advance until the last node
+
 	while (last->next != NULL)
 		last = last->next;
 
+	// Set the last as the new node
+
 	last->next = new_node;
+
+	// Return the generated secret
+
 	return secret_temp;
 }
 
@@ -116,7 +131,9 @@ bool FindKeyValueLocalServer(struct Group * head, char * name, char * key) {
 	struct Group * current = head;
 	while (current != NULL)
 	{
+		// Find group with given name
 		if (strcmp(current->group_name, name) == 0) {
+			// Check if key belong to the group table
 			if (ht_search(current->table, key) != NULL)
 				return true;
 			else
@@ -128,7 +145,7 @@ bool FindKeyValueLocalServer(struct Group * head, char * name, char * key) {
 	return false;
 }
 
-int FindGroupAuthServer(char * g_name) {
+bool FindGroupAuthServer(char * g_name) {
 
 	char func_str[BUF_SIZE] = "FindGroup";
 	int ready_flag = -1;
@@ -159,10 +176,10 @@ int FindGroupAuthServer(char * g_name) {
 	}
 
 	if (ready_flag == -1) {
-		return 0;
+		return false;
 	}
 	else {
-		return 1;
+		return true;
 	}
 }
 
@@ -210,7 +227,7 @@ char * GetSecretFromAuthServer(char * g_name) {
 	}
 
 	if (ready_flag == -1) {
-		printf("Group name doesn't exist\n");
+		printf("Group id doesn't exist\n");
 		return NULL;
 	}
 
@@ -249,6 +266,7 @@ bool AddAppToGroup(struct Group * head, char * name, char * secret, int cl_fd, i
 	{
 		if (strcmp(current->group_name, name) == 0) {
 			char * secret_recv = GetSecretFromAuthServer(current->group_name);
+			// Check if the input key is the group key
 			if (strcmp(secret_recv, secret) == 0) {
 				AppendApp(&current->apps, cl_fd, fd_cb, pid_in);
 				free(secret_recv);
@@ -274,6 +292,7 @@ bool AddKeyToWatchList(struct Group * head, char * name, int pid_in, char * key)
 		if (strcmp(current->group_name, name) == 0) {
 			struct App * curr = current->apps;
 			while (curr != NULL) {
+				// find app with given pid
 				if (curr->pid == pid_in) {
 					AddKeyToList(&curr->wlist, key);
 					return true;
@@ -293,6 +312,7 @@ bool AddKeyValueToGroup(struct Group * head, char * name, int pid, char * key, c
 	while (current != NULL)
 	{
 		if (strcmp(current->group_name, name) == 0) {
+			// Check if the app belongs to this group
 			if (FindApp(current->apps, pid)) {
 				ht_insert(current->table, key, value);
 				return true;
@@ -399,7 +419,7 @@ int DeleteGroupAuthServer(char * g_name) {
 	}
 
 	if (ready_flag == -1) {
-		printf("Group name doesn't exist\n");
+		printf("Group id doesn't exist\n");
 		return 0;
 	}
 
@@ -436,11 +456,13 @@ void SendDeleteGroupFlags(struct Group ** head_ref, char * name) {
 bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 
 	if(FindGroupLocalServer(*head_ref, name) == false) {
-		printf("Group name doesn't exist\n");
+		printf("Group id doesn't exist\n");
 		return false;
 	}
 
 	struct Group * temp = * head_ref, * prev;
+
+	// If the group is in the head node, delete it and set the head to next
 
 	if (temp != NULL && (strcmp(temp->group_name, name)==0)) {
 		DeleteGroupAuthServer(temp->group_name);
@@ -451,10 +473,14 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 		return true;
 	}
 
+	// Advance until the find the group
+
 	while (temp != NULL && (strcmp(temp->group_name, name)!=0)) {
 		prev = temp;
 		temp = temp->next;
 	}
+
+	// If the node is null, the group was not found
 
 	if (temp == NULL)
 		return false;
@@ -565,6 +591,7 @@ int DeleteGroupList(struct Group ** head_ref) {
 }
 
 void ShowAllGroupsInfo(struct Group * head) {
+
 	struct Group * current = head;
 	while (current != NULL)
 	{
@@ -582,6 +609,7 @@ void ShowAllGroupsInfo(struct Group * head) {
 }
 
 bool ShowGroupInfo(struct Group * head, char * name) {
+
 	struct Group * current = head;
 	while (current != NULL)
 	{
@@ -601,6 +629,7 @@ bool ShowGroupInfo(struct Group * head, char * name) {
 }
 
 void ShowAppStatus(struct Group * head) {
+	
 	struct Group * current = head;
 	while (current != NULL)
 	{

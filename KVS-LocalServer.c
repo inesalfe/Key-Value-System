@@ -14,14 +14,18 @@
 #include "groupList.h"
 #include "appList.h"
 
+// Path for the Local Server adress
 #define SV_SOCK_PATH "/tmp/server_sock"
+// Path for the Local Server adress for the callback thread
 #define SV_SOCK_PATH_CB "/tmp/server_sock_cb"
-// Maximum size for the secret and group name
+// Maximum length for strings (key / value / secret / group id)
 #define BUF_SIZE 100
+// Backlog for the listen
 #define BACKLOG 20
 
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 
+// Application info to the sent to the thread handling the application
 struct cl_info {
 	int file_descriptor;
 	long cl_pid;
@@ -33,18 +37,31 @@ struct Group * groups = NULL;
 struct sockaddr_in sv_addr_auth;
 // File descriptor for the connection to the AuthServer
 int sfd_auth;
+// Local Server's adress for the callback thread
 struct sockaddr_un sv_addr_cb;
+// Local Server's socket address
+struct sockaddr_un sv_addr;
+// File descriptor - This is used to create the connections to the apps
+int sfd_main;
+
+// Port to be used in the connection to the Authentification Server
+int initial_port = 58032;
 
 int put_value (char * group_name, int * app_fd, int * pid) {
 
+	// Received key
 	char temp_key[BUF_SIZE] = {0};
+	// Received value
 	char temp_value[BUF_SIZE] = {0};
+	// Ready flag
 	int ready = 1;
 	ssize_t numBytes;
+	// Send flag saying that the server is ready to receive the key
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
 		return -2;
 	}
+	// Receive the key
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
@@ -59,23 +76,28 @@ int put_value (char * group_name, int * app_fd, int * pid) {
 		printf("Local Server: Error in reading value\n");
 		return -2;
 	}
+	// If the key already exists and if the key is in the watchlist of an application belonging to the group, we will call the callback function(s)
 	if (FindKeyValueLocalServer(groups, group_name, temp_key) && IsWatchListOfGroup(groups, group_name, temp_key)) {
 		struct Group * current = groups;
+		// Find group with the given name
 		while (current != NULL)
 		{
 			if (strcmp(current->group_name, group_name) == 0) {
+				// Search all apps for the ones with the key in their watchlist
 				struct App * curr = current->apps;
 				struct App * next;
 				while (curr != NULL)
 				{
 					next = curr->next;
 					if(IsWatchList(curr->wlist, temp_key)) {
+						// Send flag saying that a key was changed
 						int flag = 1;
 						if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
 							printf("Local Server: Error in sending flag\n");
 							return -2;
 						}
 						flag = -1;
+						// Recv flag saying that the app is ready to receive the key
 						numBytes = recv(curr->fd_cb, &flag, sizeof(int), 0);
 						if (numBytes == -1) {
 							printf("Local Server: Error in reading flag\n");
@@ -96,6 +118,7 @@ int put_value (char * group_name, int * app_fd, int * pid) {
 			current = current->next;
 		}
 	}
+	// Add key value to the Hashtable of the group
 	if (AddKeyValueToGroup(groups, group_name, *pid, temp_key, temp_value))
 		return 1;
 	else
@@ -108,25 +131,31 @@ int get_value (char * group_name, int * app_fd) {
 	int ready = 1;
 	int length = -1;
 	ssize_t numBytes;
+	// Send flag saying that the server is ready to receive the key
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
 		return -2;
 	}
+	// Receive the key
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
 		return -2;
 	}
+	// Get value
 	char * temp_value = GetKeyValueLocalServer(groups, group_name, temp_key);
 	if (temp_value != NULL) {
 		length = strlen(temp_value);
 	}
+	// Send value length to app
 	if (send(*app_fd, &length, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending length\n");
 		return -2;
 	}
+	// Key doesn't exist
 	if (length == -1)
 		return -1;
+	// Send value to app
 	if (send(*app_fd, temp_value, (length+1)*sizeof(char), 0) != (length+1)*sizeof(char)) {
 		printf("Local Server: Error in sending value pointer\n");
 		return -2;
@@ -140,23 +169,29 @@ int delete_value (char * group_name, int * app_fd) {
 	int ready = 1;
 	int check_key = -1;
 	ssize_t numBytes;
+	// Send flag saying that the server is ready to receive the key
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
 		return -2;
 	}
+	// Receive the key
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
 		return -2;
 	}
+	// Check if received key exists
 	if (FindKeyValueLocalServer(groups, group_name, temp_key))
 		check_key = 1;
+	// Send flag to app
 	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending check_key\n");
 		return -2;
 	}
+	// Key doesn't exist
 	if (check_key == -1)
 		return -1;
+	// Delete pair if key exists
 	if (DeleteKeyValue(groups, group_name, temp_key) == false)
 		return -1;
 	return 1;
@@ -168,23 +203,29 @@ int register_callback (char * group_name, int * pid, int * app_fd) {
 	int ready = 1;
 	int check_key = -1;
 	ssize_t numBytes;
+	// Send flag saying that the server is ready to receive the key
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
 		return -2;
 	}
+	// Receive the key
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
 		return -2;
 	}
+	// Check if received key exists
 	if (FindKeyValueLocalServer(groups, group_name, temp_key))
 		check_key = 1;
+	// Send flag to app
 	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending check_key\n");
 		return -2;
 	}
+	// Key doesn't exist
 	if (check_key == -1)
 		return -1;
+	// Delete pair if key exists
 	if (AddKeyToWatchList(groups, group_name, *pid, temp_key) == false)
 		return -1;
 	return 1;
@@ -192,6 +233,7 @@ int register_callback (char * group_name, int * pid, int * app_fd) {
 
 void * thread_func(void * arg) {
 
+	// Get app information from arguments
 	struct cl_info * info = arg;
 	int cfd = info->file_descriptor;
 	int pid = info->cl_pid;
@@ -206,17 +248,14 @@ void * thread_func(void * arg) {
 	int error_flag = 1;
 	bool flag;
 
-	if (pthread_detach(pthread_self()) != 0) {
-			printf("Local Server: Error in 'pthread_detach'\n");
-	}
-
-	// File descriptor assignment
+	// File descriptor assignment for the callback
 	int sfd_callback = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sfd_callback == -1) {
 		printf("Local Server: Error in socket creation\n");
 		pthread_exit(NULL);
 	}
 
+	// Clean server callback adress
 	memset(&sv_addr_cb, 0, sizeof(struct sockaddr_un));
 
 	// Clean socket path
@@ -226,7 +265,6 @@ void * thread_func(void * arg) {
 	// Bind
 	sv_addr_cb.sun_family = AF_UNIX;
 	strncpy(sv_addr_cb.sun_path, SV_SOCK_PATH_CB, sizeof(sv_addr_cb.sun_path) - 1);
-	// printf("Server address: %s\n", sv_addr_cb.sun_path);
 
 	if (bind(sfd_callback, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un)) == -1) {
 		printf("Local Server: Error in binding\n");
@@ -259,11 +297,10 @@ void * thread_func(void * arg) {
 
 	// Check if group_id is correct
 	pthread_mutex_lock(&mtx);
-	int flag_int = FindGroupAuthServer(group_id_app);
-	if (flag_int == -1 || flag_int == 0)
-		error_flag = 0;
-	else
+	if(FindGroupAuthServer(group_id_app))
 		error_flag = 1;
+	else
+		error_flag = 0;
 	pthread_mutex_unlock(&mtx);
 
 	// Sending flag saying if group_id is correct or not
@@ -294,30 +331,24 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
-	// printf("First connection established\n");
-
-	// printf("After bind\n");
-
 	// Listen
 	if (listen(sfd_callback, BACKLOG) == - 1) {
 		printf("Local Server: Error in listening\n");
 		pthread_exit(NULL);
 	}
 
-	// printf("After listen\n");
-
 	struct sockaddr_un app_addr;
 	memset(&app_addr, 0, sizeof(struct sockaddr_un));
 	socklen_t len = sizeof(struct sockaddr_un);
 
+	// Connect to the callback fie descriptor
 	int fd_cb = accept(sfd_callback, (struct sockaddr *) &app_addr, &len);
 	if (fd_cb == -1) {
 		printf("Local Server: Error in accepting\n");
 		pthread_exit(NULL);
 	}
 
-	// printf("Callback socket: %d\n", fd_cb);
-
+	// Reuse of error flag for the established connection
 	error_flag = 1;
 
 	// Sending flag saying that connection was established
@@ -347,10 +378,8 @@ void * thread_func(void * arg) {
 		pthread_exit(NULL);
 	}
 
-	printf("Connection established with app:\n");
-	printf("PID: %ld\n", pid);
-	printf("File Descriptor: %d\n", cfd);
-	printf("Callback File Descriptor: %d\n", fd_cb);
+	// Print information for the connected app
+	printf("Connection established with app with PID %ld\n", pid);
 
 	// End of establish connection
 
@@ -437,12 +466,9 @@ void * thread_func(void * arg) {
 	pthread_exit(NULL);
 }
 
-// Definition of the socket address and file descriptor
-struct sockaddr_un sv_addr;
-int sfd_main;
-
 void * handle_apps(void * arg) {
 
+	// Detach thread because we will cancel it when exiting the serverr
 	if (pthread_detach(pthread_self()) != 0) {
 		printf("Local Server: Error in 'pthread_detach'\n");
 		pthread_exit(NULL);
@@ -496,21 +522,25 @@ int main(int argc, char *argv[]) {
 
 	signal(SIGPIPE, SIG_IGN);
 
+	// Create socket
 	sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sfd_auth == -1) {
 		printf("Local Server: Error in socket creation\n");
 		exit(-1);
 	}
 
+	// Address of the authentification server
 	sv_addr_auth.sin_family = AF_INET;
-	sv_addr_auth.sin_port = htons(58032);
+	sv_addr_auth.sin_port = htons(initial_port);
 
+	// Sending a string to the Auth Server to connect
 	char str_connect[BUF_SIZE] = "Connect";
 	if (sendto(sfd_auth, str_connect, sizeof(str_connect), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(str_connect)) {
 		printf("Local Server: Error in sendto\n");
 		exit(-1);
 	}
 	int port_number = -1;
+	// Receive the new port number
 	if (recvfrom(sfd_auth, &port_number, sizeof(port_number), 0, NULL, NULL) == -1) {
 		printf("Local Server: Error in recvfrom\n");
 		exit(-1);
@@ -522,6 +552,7 @@ int main(int argc, char *argv[]) {
 	pthread_t t_id_apps;
 	pthread_create(&t_id_apps, NULL, handle_apps, NULL);
 
+	// We only try to recvfrom / sendto for one second
 	struct timeval tv;
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
@@ -533,9 +564,9 @@ int main(int argc, char *argv[]) {
 	char str[BUF_SIZE] = {0};
 	char g_name[BUF_SIZE] = {0};
 	size_t len;
+	// Getting the commands from the keyboard
 	while (1) {
 		fgets(str, sizeof(str), stdin);
-		// ShowAllGroupsInfo(groups);
 		if (strcmp(str, "Create group\n") == 0) {
 			pthread_mutex_lock(&mtx);
 			printf("Insert group id:\n");
@@ -576,7 +607,7 @@ int main(int argc, char *argv[]) {
 				g_name[--len] = '\0';
 			}
 			if (ShowGroupInfo(groups, g_name) == false)
-				printf("Group not found!\n");
+				printf("Group id not found!\n");
 			pthread_mutex_unlock(&mtx);
 		}
 		else if (strcmp(str, "Show application status\n") == 0) {
@@ -593,32 +624,40 @@ int main(int argc, char *argv[]) {
 		memset(g_name, 0, sizeof(g_name));
 	}
 
+	// Cancel thread that is receiving connections from all the apps
 	pthread_cancel(t_id_apps);
 
+	// Close file descriptor of the socket that was receiving connections from the apps
 	if (close(sfd_main) == -1) {
 		printf("Local Server: Error in closing socket\n");
 	}
 
 	pthread_mutex_lock(&mtx);
+	// Force apps to close connections
 	SendDeleteAllGroupsFlags(&groups);
 	pthread_mutex_unlock(&mtx);
+	// Wait until all connections are closed
 	while(AllAppsClosed(&groups) == false);
 	pthread_mutex_lock(&mtx);
+	// Delete all groups
 	if (DeleteGroupList(&groups) == -1)
 		printf("Error in deleting the group list\n");
 	pthread_mutex_unlock(&mtx);
 
+	// Send string to the Authentification server saying that the connection is beeing closed
 	char cmd[BUF_SIZE] = "CloseConnection";
 	if (sendto(sfd_auth, cmd, sizeof(cmd), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(cmd)) {
 		printf("Server: Error in sendto\n");
 		exit(-1);
 	}
 
+	// Close file descriptor of the connection to the Authentification server
 	if (close(sfd_auth) == -1) {
 		printf("Local Server: Error in closing socket\n");
 		exit(-1);
 	}
 
+	// Remove paths to avoid problem with future binds
 	remove(sv_addr.sun_path);
 	remove(sv_addr_cb.sun_path);
 

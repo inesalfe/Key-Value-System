@@ -38,8 +38,6 @@ void PrintAppList(struct App * app)
 			printf("Close Connection time: %s\n", res);
 		else
 			printf("Close Connection time: -\n");
-		// printf("Connection time: %f\n", app->start.tv_sec + (double) app->start.tv_nsec / 1.0e9);
-		// printf("Close Connection time: %f\n", app->stop.tv_sec + (double) app->stop.tv_nsec / 1.0e9);
 		if (app->isClosed)
 			printf("Connected time interval: %f\n", app->delta_t);
 		else {
@@ -115,52 +113,6 @@ bool CloseConnection(struct App * head, int pid)
 	}
 	return false;
 }
-
-// void CloseAllConnections(struct App * head)
-// {
-// 	struct App * current = head;
-// 	while (current != NULL)
-// 	{
-// 		if (current->isClosed == false) {
-// 			clock_gettime(CLOCK_REALTIME, &current->stop);
-// 			current->delta_t = (current->stop.tv_sec - current->start.tv_sec) + (double) (current->stop.tv_nsec - current->start.tv_nsec) / 1.0e9;
-// 			if (close(current->fd) == -1) {
-// 				printf("Local Server: Error in closing socket\n");
-// 			}
-// 			if (close(current->fd_cb) == -1) {
-// 				printf("Local Server: Error in closing socket\n");
-// 			}
-// 			current->isClosed = true;
-// 		}
-// 		current = current->next;
-// 	}
-// 	return;
-// }
-
-// void CloseFileDesc(struct App** head_ref) {
-
-// 	struct App * current = * head_ref;
-// 	struct App * next;
-
-// 	while (current != NULL)
-// 	{
-// 		next = current->next;
-// 		if (current->isClosed == false) {
-// 			clock_gettime(CLOCK_REALTIME, &current->stop);
-// 			current->delta_t = (current->stop.tv_sec - current->start.tv_sec) + (double) (current->stop.tv_nsec - current->start.tv_nsec) / 1.0e9;
-// 			if (close(current->fd) == -1) {
-// 				printf("Local Server: Error in closing socket\n");
-// 			}
-// 			if (close(current->fd_cb) == -1) {
-// 				printf("Local Server: Error in closing socket\n");
-// 			}
-// 			current->isClosed = true;
-// 		}
-// 		current = next;
-// 	}
-
-// 	return;
-// }
 
 void DeleteAppList(struct App ** head_ref) {
 

@@ -10,7 +10,6 @@
 - Fechar Local Servers a partir do Auth server se se fizer quit no auth server
 - Lidar com o AuthServer? - várias conexões com servidores
 - Fechar ligações
-
-
-
-- se fechar o auth server, fechar os servidores locais
+- se fechar o auth server, fechar os servidores locais - está feito mas à padeiro
+- receber o port como argumento no teclado, maybe?
+- Comentar e "perceber" a hashtable
