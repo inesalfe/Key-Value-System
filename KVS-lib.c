@@ -21,7 +21,7 @@ extern struct sockaddr_un cl_addr;
 // Local Server adress
 extern struct sockaddr_un sv_addr;
 // Thread id for the callback thread
-extern pthread_t callback_pid;
+extern pthread_t callback_tid;
 // File descript for the UNIX socket used for int the callback thread
 extern int cfd_cb;
 // App adress for the callback thread
@@ -164,9 +164,6 @@ int establish_connection (char * group_id, char * secret) {
 		printf("App: Error - Connection already established\n");
 		return -16;
 	}
-
-	// Print app PID
-	printf("App PID: %ld\n", (long) getpid());
 
 	// Assignment of server address
 	cfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -402,6 +399,9 @@ int establish_connection (char * group_id, char * secret) {
 	// Create second thread for the callback function
 	pthread_create(&callback_tid, NULL, callback_thread, NULL);
 
+	// Print app PID
+	printf("App PID: %ld\n", (long) getpid());
+	
 	return 0;
 
 }
