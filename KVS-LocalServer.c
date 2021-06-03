@@ -59,21 +59,25 @@ int put_value (char * group_name, int * app_fd, int * pid) {
 	// Send flag saying that the server is ready to receive the key
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Receive the key
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	numBytes = recv(*app_fd, temp_value, sizeof(temp_value), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading value\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// If the key already exists and if the key is in the watchlist of an application belonging to the group, we will call the callback function(s)
@@ -94,6 +98,7 @@ int put_value (char * group_name, int * app_fd, int * pid) {
 						int flag = 1;
 						if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
 							printf("Local Server: Error in sending flag\n");
+							printf("The error message is: %s\n", strerror(errno));
 							return -2;
 						}
 						flag = -1;
@@ -101,6 +106,7 @@ int put_value (char * group_name, int * app_fd, int * pid) {
 						numBytes = recv(curr->fd_cb, &flag, sizeof(int), 0);
 						if (numBytes == -1) {
 							printf("Local Server: Error in reading flag\n");
+							printf("The error message is: %s\n", strerror(errno));
 							return -2;
 						}
 						if (flag == -1) {
@@ -109,6 +115,7 @@ int put_value (char * group_name, int * app_fd, int * pid) {
 						}
 						if (send(curr->fd_cb, temp_key, sizeof(temp_key), 0) != sizeof(temp_key)) {
 							printf("Local Server: Error in sending changed key\n");
+							printf("The error message is: %s\n", strerror(errno));
 							return -2;
 						}
 					}
@@ -134,6 +141,7 @@ int get_value (char * group_name, int * app_fd) {
 	// Send flag saying that the server is ready to receive the key
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Receive the key
@@ -150,6 +158,7 @@ int get_value (char * group_name, int * app_fd) {
 	// Send value length to app
 	if (send(*app_fd, &length, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending length\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Key doesn't exist
@@ -158,6 +167,7 @@ int get_value (char * group_name, int * app_fd) {
 	// Send value to app
 	if (send(*app_fd, temp_value, (length+1)*sizeof(char), 0) != (length+1)*sizeof(char)) {
 		printf("Local Server: Error in sending value pointer\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	return 1;
@@ -172,12 +182,14 @@ int delete_value (char * group_name, int * app_fd) {
 	// Send flag saying that the server is ready to receive the key
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Receive the key
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Check if received key exists
@@ -186,6 +198,7 @@ int delete_value (char * group_name, int * app_fd) {
 	// Send flag to app
 	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending check_key\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Key doesn't exist
@@ -206,12 +219,14 @@ int register_callback (char * group_name, int * pid, int * app_fd) {
 	// Send flag saying that the server is ready to receive the key
 	if (send(*app_fd, &ready, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Receive the key
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Check if received key exists
@@ -220,6 +235,7 @@ int register_callback (char * group_name, int * pid, int * app_fd) {
 	// Send flag to app
 	if (send(*app_fd, &check_key, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending check_key\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Key doesn't exist
@@ -252,6 +268,7 @@ void * thread_func(void * arg) {
 	int sfd_callback = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sfd_callback == -1) {
 		printf("Local Server: Error in socket creation\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
@@ -268,14 +285,17 @@ void * thread_func(void * arg) {
 
 	if (bind(sfd_callback, (struct sockaddr *) &sv_addr_cb, sizeof(struct sockaddr_un)) == -1) {
 		printf("Local Server: Error in binding\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
 	// Sending flag saying that connection was established
 	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending flag for established connection\n");
-		if (close(cfd) == -1) {
+		printf("The error message is: %s\n", strerror(errno));
+		if (close (sfd_callback) == -1 || close(cfd) == -1) {
 			printf("Local Server: Error in closing socket file descriptor\n");
+			printf("The error message is: %s\n", strerror(errno));
 		}
 		pthread_exit(NULL);
 	}
@@ -289,15 +309,17 @@ void * thread_func(void * arg) {
 	// Error in reading group_id
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading group_id\n");
-		if (close(cfd) == -1) {
+		printf("The error message is: %s\n", strerror(errno));
+		if (close (sfd_callback) == -1 || close(cfd) == -1) {
 			printf("Local Server: Error in closing socket file descriptor\n");
+			printf("The error message is: %s\n", strerror(errno));
 		}
 		pthread_exit(NULL);
 	}
 
 	// Check if group_id is correct
 	pthread_mutex_lock(&mtx);
-	if(FindGroupAuthServer(group_id_app))
+	if(FindGroupLocalServer(groups, group_id_app))
 		error_flag = 1;
 	else
 		error_flag = 0;
@@ -306,8 +328,10 @@ void * thread_func(void * arg) {
 	// Sending flag saying if group_id is correct or not
 	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending flag for correct/incorrect group_id\n");
-		if (close(cfd) == -1) {
+		printf("The error message is: %s\n", strerror(errno));
+		if (close (sfd_callback) == -1 || close(cfd) == -1) {
 			printf("Local Server: Error in closing socket file descriptor\n");
+			printf("The error message is: %s\n", strerror(errno));
 		}
 		pthread_exit(NULL);
 	}
@@ -325,8 +349,10 @@ void * thread_func(void * arg) {
 	// Errot in reading secret
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading secret\n");
-		if (close(cfd) == -1) {
+		printf("The error message is: %s\n", strerror(errno));
+		if (close (sfd_callback) == -1 || close(cfd) == -1) {
 			printf("Local Server: Error in closing socket file descriptor\n");
+			printf("The error message is: %s\n", strerror(errno));
 		}
 		pthread_exit(NULL);
 	}
@@ -334,6 +360,7 @@ void * thread_func(void * arg) {
 	// Listen
 	if (listen(sfd_callback, BACKLOG) == - 1) {
 		printf("Local Server: Error in listening\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
@@ -345,6 +372,11 @@ void * thread_func(void * arg) {
 	int fd_cb = accept(sfd_callback, (struct sockaddr *) &app_addr, &len);
 	if (fd_cb == -1) {
 		printf("Local Server: Error in accepting\n");
+		printf("The error message is: %s\n", strerror(errno));
+		if (close (sfd_callback) == -1 || close(cfd) == -1) {
+			printf("Local Server: Error in closing socket file descriptor\n");
+			printf("The error message is: %s\n", strerror(errno));
+		}
 		pthread_exit(NULL);
 	}
 
@@ -354,8 +386,10 @@ void * thread_func(void * arg) {
 	// Sending flag saying that connection was established
 	if (send(fd_cb, &error_flag, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending flag for established connection\n");
-		if (close(cfd) == -1) {
+		printf("The error message is: %s\n", strerror(errno));
+		if (close (sfd_callback) == -1 || close(cfd) == -1) {
 			printf("Local Server: Error in closing socket file descriptor\n");
+			printf("The error message is: %s\n", strerror(errno));
 		}
 		pthread_exit(NULL);
 	}
@@ -372,16 +406,19 @@ void * thread_func(void * arg) {
 	// Sending flag saying if secret is correct or not
 	if (send(cfd, &error_flag, sizeof(int), 0) != sizeof(int)) {
 		printf("Local Server: Error in sending flag for correct/incorrect secret\n");
-		if (close(cfd) == -1) {
+		printf("The error message is: %s\n", strerror(errno));
+		if (close (sfd_callback) == -1 || close(cfd) == -1) {
 			printf("Local Server: Error in closing socket file descriptor\n");
+			printf("The error message is: %s\n", strerror(errno));
 		}
 		pthread_exit(NULL);
 	}
 
 	if (error_flag == 0) {
 		printf("Local Server: Incorrect secret\n");
-		if (close(cfd) == -1) {
+		if (close (sfd_callback) == -1 || close(cfd) == -1) {
 			printf("Local Server: Error in closing socket file descriptor\n");
+			printf("The error message is: %s\n", strerror(errno));
 		}
 		pthread_exit(NULL);
 	}
@@ -479,6 +516,7 @@ void * handle_apps(void * arg) {
 	// Detach thread because we will cancel it when exiting the serverr
 	if (pthread_detach(pthread_self()) != 0) {
 		printf("Local Server: Error in 'pthread_detach'\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
@@ -486,6 +524,7 @@ void * handle_apps(void * arg) {
 	sfd_main = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sfd_main == -1) {
 		printf("Local Server: Error in socket creation\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
@@ -498,12 +537,14 @@ void * handle_apps(void * arg) {
 
 	if (bind(sfd_main, (struct sockaddr *) &sv_addr, sizeof(struct sockaddr_un)) == -1) {
 		printf("Local Server: Error in binding\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
 	// Listen
 	if (listen(sfd_main, BACKLOG) == -1) {
 		printf("Local Server: Error in listening\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
@@ -517,6 +558,7 @@ void * handle_apps(void * arg) {
 		temp_info.cl_pid = atol(app_addr.sun_path + strlen("/tmp/app_socket_"));
 		if (temp_info.file_descriptor == -1) {
 			printf("Local Server: Error in accepting\n");
+			printf("The error message is: %s\n", strerror(errno));
 			pthread_exit(NULL);
 		}
 		pthread_t t_id;
@@ -534,6 +576,7 @@ int main(int argc, char *argv[]) {
 	sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sfd_auth == -1) {
 		printf("Local Server: Error in socket creation\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -545,12 +588,14 @@ int main(int argc, char *argv[]) {
 	char str_connect[BUF_SIZE] = "Connect";
 	if (sendto(sfd_auth, str_connect, sizeof(str_connect), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(str_connect)) {
 		printf("Local Server: Error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 	int port_number = -1;
 	// Receive the new port number
 	if (recvfrom(sfd_auth, &port_number, sizeof(port_number), 0, NULL, NULL) == -1) {
 		printf("Local Server: Error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 	printf("Port Number: %d\n", port_number);
@@ -566,6 +611,7 @@ int main(int argc, char *argv[]) {
 	tv.tv_usec = 0;
 	if (setsockopt(sfd_auth, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
 	    printf("Local Server: Error in setting socket options\n");
+	    printf("The error message is: %s\n", strerror(errno));
 	    exit(-1);
 	}
 	
@@ -638,6 +684,7 @@ int main(int argc, char *argv[]) {
 	// Close file descriptor of the socket that was receiving connections from the apps
 	if (close(sfd_main) == -1) {
 		printf("Local Server: Error in closing socket\n");
+		printf("The error message is: %s\n", strerror(errno));
 	}
 
 	pthread_mutex_lock(&mtx);
@@ -656,12 +703,14 @@ int main(int argc, char *argv[]) {
 	char cmd[BUF_SIZE] = "CloseConnection";
 	if (sendto(sfd_auth, cmd, sizeof(cmd), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(cmd)) {
 		printf("Server: Error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	// Close file descriptor of the connection to the Authentification server
 	if (close(sfd_auth) == -1) {
 		printf("Local Server: Error in closing socket\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 

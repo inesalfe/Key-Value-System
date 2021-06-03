@@ -157,14 +157,14 @@ void * thread_f(void * arg) {
 				printf("Error in 'register_callback'\n");
 		}
 		else if (strcmp(str, "close_connection\n") == 0) {
+			// Canceling the callback thread
+			pthread_cancel(callback_tid);
 			// Calling function from the KVS-lib library
 			if (close_connection() == 1) {
 				printf("Successful 'close_connection'\n");
 			}
 			else
 				printf("Error in 'close_connection'\n");
-			// Canceling the callback thread
-			pthread_cancel(callback_tid);
 			// Setting the exit flag so that the cicle in the main function can be breaked
 			exit_flag = 2;
 			break;

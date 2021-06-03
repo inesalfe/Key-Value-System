@@ -30,12 +30,13 @@ bool FindKeyValueLocalServer(struct Group * head, char * name, char * key);
 
 // Function that checks if a group is present in the Authentification Server
 // Returns false in case of group not found and true in case of group found
-// Called during the "establish_connection" phase of the app
+// Called by the function "CreateGroupLocalServer"
 bool FindGroupAuthServer(char * g_name);
 
 // Function that return whether a group with a certain name has been created or not
 // This is used when an application is trying to connect to a certain group
 // Returns false if the group name was not found, true otherwise
+// Called during the "establish_connection" phase
 bool FindGroupLocalServer(struct Group * head, char * name);
 
 // Function that returns the secret for a given group
@@ -103,7 +104,7 @@ bool AllAppsFromGroupClosed(struct Group ** head_ref, char * name);
 
 // Delete all groups in the Local Server in both the Local and Authentification Server
 // Used when exiting the server
-int DeleteGroupList(struct Group **  head_ref);
+int DeleteGroupList(struct Group ** head_ref);
 
 // Function that prints information about all groups
 // Used for debugging purposes

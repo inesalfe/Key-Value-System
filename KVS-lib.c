@@ -363,7 +363,7 @@ int establish_connection (char * group_id, char * secret) {
 			// printf("Value of errno: %d\n", errno);
 			printf("The error message is: %s\n", strerror(errno));
 			// perror("Message from perror");
-			if (close(cfd_cb) == -1) {
+			if (close(cfd_cb) == -1 || close(cfd) == -1) {
 				printf("App: Error in closing socket\n");
 				printf("The error message is: %s\n", strerror(errno));
 				exit(-1);
@@ -384,7 +384,7 @@ int establish_connection (char * group_id, char * secret) {
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the established connection\n");
 		printf("The error message is: %s\n", strerror(errno));
-		if (close(cfd_cb) == -1) {
+		if (close(cfd) == -1 || close(cfd_cb) == -1) {
 			printf("App: Error in closing socket\n");
 			printf("The error message is: %s\n", strerror(errno));
 			return -1;
@@ -410,7 +410,7 @@ int establish_connection (char * group_id, char * secret) {
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the sent key / group_id / secret\n");
 		printf("The error message is: %s\n", strerror(errno));
-		if (close(cfd_cb) == -1) {
+		if (close(cfd) == -1 || close(cfd_cb) == -1) {
 			printf("App: Error in closing socket\n");
 			printf("The error message is: %s\n", strerror(errno));
 			return -1;
