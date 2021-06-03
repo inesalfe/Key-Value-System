@@ -70,18 +70,21 @@ int close_connection() {
 	// Send the function name to the server
 	if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
 		printf("App: Error in sending function code\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -3;
 	}
 
 	// Close file descriptor
 	if (close(cfd) == -1) {
 		printf("App: Error in closing socket\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -1;
 	}
 
 	// Close callback thread file descriptor
 	if (close(cfd_cb) == -1) {
 		printf("App: Error in closing socket\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -1;
 	}	
 
@@ -98,6 +101,7 @@ void * callback_thread(void * arg) {
 	// To use the pthread cancel in the main function we need to use detach first, to that the memory can be correctly released
 	if (pthread_detach(pthread_self()) != 0) {
 		printf("App: Error in 'pthread_detach'\n");
+		printf("The error message is: %s\n", strerror(errno));
 	}
 
 	// Number of received bytes - will be used to check for errors
@@ -110,6 +114,7 @@ void * callback_thread(void * arg) {
 		numBytes = recv(cfd_cb, &flag, sizeof(int), 0);
 		if (numBytes == -1) {
 			printf("App: Error in receiving flag\n");
+			printf("The error message is: %s\n", strerror(errno));
 			break;
 		}
 		if (flag == 1) {
@@ -118,12 +123,14 @@ void * callback_thread(void * arg) {
 			// Send ready flag saying that the app is ready to receive the changed key
 			if (send(cfd_cb, &ready_flag, sizeof(int), 0) != sizeof(int)) {
 				printf("App: Error in sending ready flag\n");
+				printf("The error message is: %s\n", strerror(errno));
 				break;
 			}
 			// Receive the changed key
 			numBytes = recv(cfd_cb, changed_key, sizeof(changed_key), 0);
 			if (numBytes == -1) {
 				printf("App: Error in receiving changed flag\n");
+				printf("The error message is: %s\n", strerror(errno));
 				break;
 			}
 			// Search for the changed key in the callback linked list so that we know which function to execute
@@ -169,6 +176,7 @@ int establish_connection (char * group_id, char * secret) {
 	cfd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (cfd == -1) {
 		printf("App: Error in socket creation / Socket not created\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 
@@ -189,8 +197,10 @@ int establish_connection (char * group_id, char * secret) {
 	// Bind app
 	if (bind(cfd, (struct sockaddr *) &cl_addr, sizeof(struct sockaddr_un)) == -1) {
 		printf("App: Error in binding\n");
+		printf("The error message is: %s\n", strerror(errno));
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
@@ -200,8 +210,10 @@ int establish_connection (char * group_id, char * secret) {
 	// Connect to server
 	if (connect(cfd, (struct sockaddr *) &sv_addr, sizeof(struct sockaddr_un)) == -1) {
 		printf("App: Error in connect\n");
+		printf("The error message is: %s\n", strerror(errno));
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
@@ -218,8 +230,10 @@ int establish_connection (char * group_id, char * secret) {
 	numBytes = recv(cfd, &check_connection, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the established connection\n");
+		printf("The error message is: %s\n", strerror(errno));
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
@@ -231,6 +245,7 @@ int establish_connection (char * group_id, char * secret) {
 		printf("App: Error in establishing connection to the server\n");
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
@@ -241,10 +256,12 @@ int establish_connection (char * group_id, char * secret) {
 	if (send(cfd, group_id, strlen(group_id), 0) != strlen(group_id)) {
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
 		printf("App: Error in sending key / group_id / value / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -6;
 	}
 
@@ -252,8 +269,10 @@ int establish_connection (char * group_id, char * secret) {
 	numBytes = recv(cfd, &check_group, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the sent key / group_id / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
@@ -264,6 +283,7 @@ int establish_connection (char * group_id, char * secret) {
 	if (check_group != 1) {
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
@@ -275,10 +295,12 @@ int establish_connection (char * group_id, char * secret) {
 	if (send(cfd, secret, strlen(secret), 0) != strlen(secret)) {
 		if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
 		printf("App: Error in sending key / group_id / value / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -6;
 	}
 
@@ -286,8 +308,10 @@ int establish_connection (char * group_id, char * secret) {
 	int enable = 1;
 	if (setsockopt(cfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
 	    printf("setsockopt(SO_REUSEADDR) failed");
+	    printf("The error message is: %s\n", strerror(errno));
 	    if (close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
@@ -298,13 +322,14 @@ int establish_connection (char * group_id, char * secret) {
 	cfd_cb = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (cfd_cb == -1) {
 		printf("App: Error in socket creation / Socket not created\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 
 	// App address assignment with PID for the callback thread
 	memset(&cl_addr_cb, 0, sizeof(struct sockaddr_un));
 	cl_addr_cb.sun_family = AF_UNIX;
-	snprintf(cl_addr_cb.sun_path, sizeof(cl_addr_cb.sun_path), "/tmp/app_socket_cb_%ld", (long) pthread_self());
+	snprintf(cl_addr_cb.sun_path, sizeof(cl_addr_cb.sun_path), "/tmp/app_socket_cb_%ld", (long) getpid());
 
 	// Unlink app address before bind
 	remove(cl_addr_cb.sun_path);
@@ -313,8 +338,10 @@ int establish_connection (char * group_id, char * secret) {
 	// Bind app
 	if (bind(cfd_cb, (struct sockaddr *) &cl_addr_cb, sizeof(struct sockaddr_un)) == -1) {
 		printf("App: Error in binding\n");
+		printf("The error message is: %s\n", strerror(errno));
 		if (close(cfd_cb) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd_cb = -1;
@@ -333,11 +360,12 @@ int establish_connection (char * group_id, char * secret) {
 	while(sucess_flag == -1) {
 		if (counter > 5) {
 			printf("App: Error in connect\n");
-			printf("Value of errno: %d\n", errno);
+			// printf("Value of errno: %d\n", errno);
 			printf("The error message is: %s\n", strerror(errno));
-			perror("Message from perror");
+			// perror("Message from perror");
 			if (close(cfd_cb) == -1) {
 				printf("App: Error in closing socket\n");
+				printf("The error message is: %s\n", strerror(errno));
 				exit(-1);
 			}
 			exit(-1);
@@ -355,8 +383,10 @@ int establish_connection (char * group_id, char * secret) {
 	numBytes = recv(cfd_cb, &check_connection, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the established connection\n");
+		printf("The error message is: %s\n", strerror(errno));
 		if (close(cfd_cb) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd_cb = -1;
@@ -368,6 +398,7 @@ int establish_connection (char * group_id, char * secret) {
 		printf("App: Error in establishing connection to the server\n");
 		if (close(cfd_cb) == -1 || close(cfd) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd_cb = -1;
@@ -378,8 +409,10 @@ int establish_connection (char * group_id, char * secret) {
 	numBytes = recv(cfd, &check_secret, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the sent key / group_id / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		if (close(cfd_cb) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd_cb = -1;
@@ -389,6 +422,7 @@ int establish_connection (char * group_id, char * secret) {
 	if (check_secret != 1) {
 		if (close(cfd) == -1 || close(cfd_cb) == -1) {
 			printf("App: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 			return -1;
 		}
 		cfd = -1;
@@ -401,7 +435,7 @@ int establish_connection (char * group_id, char * secret) {
 
 	// Print app PID
 	printf("App PID: %ld\n", (long) getpid());
-	
+
 	return 0;
 
 }
@@ -419,6 +453,7 @@ int put_value (char * key, char * value) {
 	// Send the function name to the server
 	if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
 		printf("App: Error in sending function code\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -3;
 	}
 
@@ -431,6 +466,7 @@ int put_value (char * key, char * value) {
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -4;
 	}
 
@@ -442,6 +478,7 @@ int put_value (char * key, char * value) {
 	// Send the key
 	if (send(cfd, key, strlen(key), 0) != strlen(key)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -6;
 	}
 
@@ -452,6 +489,7 @@ int put_value (char * key, char * value) {
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -4;
 	}
 
@@ -463,6 +501,7 @@ int put_value (char * key, char * value) {
 	// Sending the value
 	if (send(cfd, value, strlen(value), 0) != strlen(value)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -6;
 	}
 
@@ -483,6 +522,7 @@ int get_value (char * key, char ** value) {
 	// Send the function name to the server
 	if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
 		printf("App: Error in sending function code\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -3;
 	}
 
@@ -497,6 +537,7 @@ int get_value (char * key, char ** value) {
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -4;
 	}
 
@@ -508,6 +549,7 @@ int get_value (char * key, char ** value) {
 	// Send the key
 	if (send(cfd, key, strlen(key), 0) != strlen(key)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -6;
 	}
 
@@ -515,6 +557,7 @@ int get_value (char * key, char ** value) {
 	numBytes = recv(cfd, &length, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -4;
 	}
 
@@ -528,6 +571,7 @@ int get_value (char * key, char ** value) {
 	numBytes = recv(cfd, *value, (length+1)*sizeof(char), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving values\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -10;
 	}
 
@@ -548,6 +592,7 @@ int delete_value (char * key) {
 	// Send the function code to the server
 	if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
 		printf("App: Error in sending function code\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -3;
 	}
 
@@ -562,17 +607,20 @@ int delete_value (char * key) {
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -4;
 	}
 
 	if (ready != 1) {
 		printf("App: Server not ready\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -5;
 	}
 
 	// Send the key
 	if (send(cfd, key, strlen(key), 0) != strlen(key)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -6;
 	}
 
@@ -580,6 +628,7 @@ int delete_value (char * key) {
 	numBytes = recv(cfd, &check_key, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the sent key / group_id / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -8;
 	}
 
@@ -628,6 +677,7 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 	// Send the function code to the server
 	if (send(cfd, &func_code, sizeof(int), 0) != sizeof(int)) {
 		printf("App: Error in sending function code\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -3;
 	}
 
@@ -642,6 +692,7 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 	numBytes = recv(cfd, &ready, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving ready flag\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -4;
 	}
 
@@ -653,6 +704,7 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 	// Send the key
 	if (send(cfd, key, strlen(key), 0) != strlen(key)) {
 		printf("App: Error in sending key / group_id / value / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -6;
 	}
 
@@ -660,6 +712,7 @@ int register_callback (char * key, void (*callback_function)(char *)) {
 	numBytes = recv(cfd, &check_key, sizeof(int), 0);
 	if (numBytes == -1) {
 		printf("App: Error in receiving response for the sent key / group_id / secret\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -8;
 	}
 

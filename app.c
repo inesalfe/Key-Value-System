@@ -80,12 +80,7 @@ void * thread_f(void * arg) {
 			if (establish_connection(g_name, secret) == 0)
 				printf("Successful 'establish_connection'\n");
 			else {
-				printf("Error in 'establish_connection'\n");
-				// Canceling the callback thread
-				pthread_cancel(callback_tid);
-				// Setting the exit flag so that the cicle in the main function can be breaked
-				exit_flag = 2;
-				break;				
+				printf("Error in 'establish_connection'\n");	
 			}
 		}
 		else if (strcmp(str, "put_value\n") == 0) {
@@ -194,6 +189,8 @@ int main(int argc, char *argv[]) {
 	if (exit_flag == 1) {
 		pthread_cancel(pid);
 	}
+
+	printf("Exiting the app...\n");
 
 	return 0;
 

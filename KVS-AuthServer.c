@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include "hash.h"
 
 #define BUF_SIZE 100
@@ -66,6 +67,7 @@ void RemoveServerFromList(int fd) {
 	if (temp != NULL && (temp->file_desc == fd)) {
 		if (close(temp->file_desc) == -1) {
 			printf("Authentification Server: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 		}
 		connected_servers = temp->next;
 		free(temp);
@@ -82,6 +84,7 @@ void RemoveServerFromList(int fd) {
 
 	if (close(temp->file_desc) == -1) {
 		printf("Authentification Server: Error in closing socket\n");
+		printf("The error message is: %s\n", strerror(errno));
 	}
 
 	prev->next = temp->next;
@@ -102,6 +105,7 @@ void * thread_func(void * arg) {
 	int sfd_ls = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sfd_ls == -1) {
 		printf("Local Server: Error in socket creation\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 	// Clean auth server address
@@ -113,6 +117,7 @@ void * thread_func(void * arg) {
 	// Bind address
 	if (bind(sfd_ls, (struct sockaddr *) &sv_addr, sizeof(struct sockaddr_in)) == -1) {
 		printf("Authentification Server: Error in binding\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
@@ -134,11 +139,13 @@ void * thread_func(void * arg) {
 	for (;;) {
 		if (recvfrom(sfd_ls, buf, BUF_SIZE, 0, (struct sockaddr *) &addr, &len) == -1) {
 			printf("Authentification Server: Error in recvfrom\n");
+			printf("The error message is: %s\n", strerror(errno));
 			pthread_exit(NULL);
 		}
 		else {
 			if (inet_ntop(AF_INET, &addr.sin_addr, addrStr, INET_ADDRSTRLEN) == NULL) {
 				printf("Authentification Server: Couldn't convert client address to string\n");
+				printf("The error message is: %s\n", strerror(errno));
 				pthread_exit(NULL);
 			}
 			else {
@@ -148,11 +155,13 @@ void * thread_func(void * arg) {
 					// Send flag saying that AuthServer is ready to receive group
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// Receive group name
 					if (recvfrom(sfd_ls, g_name, sizeof(g_name), 0, (struct sockaddr *) &addr, &len) == -1) {
 						printf("Authentification Server: Error in recvfrom\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// Check if group name already exists
@@ -163,6 +172,7 @@ void * thread_func(void * arg) {
 					// Send flag saying that AuthServer is ready to receive (or not) secret
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// If ready_flag = -1, exit or continue cicle.
@@ -173,6 +183,7 @@ void * thread_func(void * arg) {
 					// Receive secret
 					if (recvfrom(sfd_ls, secret, sizeof(secret), 0, (struct sockaddr *) &addr, &len) == -1) {
 						printf("Authentification Server: Error in recvfrom\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// Store in hash table
@@ -180,6 +191,7 @@ void * thread_func(void * arg) {
 					// Send success flag (reuse ready flag)
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					if (ready_flag == 1) {
@@ -193,11 +205,13 @@ void * thread_func(void * arg) {
 					// Send flag saying that AuthServer is ready to receive group
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// Receive group name
 					if (recvfrom(sfd_ls, g_name, sizeof(g_name), 0, (struct sockaddr *) &addr, &len) == -1) {
 						printf("Authentification Server: Error in recvfrom\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// Check if group name exists
@@ -207,6 +221,7 @@ void * thread_func(void * arg) {
 					// Send flag saying that AuthServer is ready to receive secret
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// If ready_flag = -1, exit or continue cicle.
@@ -217,6 +232,7 @@ void * thread_func(void * arg) {
 					// Receive flag saying that the server is ready to receive the secret
 					if (recvfrom(sfd_ls, &ready_flag, sizeof(ready_flag), 0, (struct sockaddr *) &addr, &len) == -1) {
 						printf("Authentification Server: Error in recvfrom\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					char temp_secret[BUF_SIZE] = {0};
@@ -224,6 +240,7 @@ void * thread_func(void * arg) {
 					// Send secret
 					if (sendto(sfd_ls, temp_secret, strlen(temp_secret), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != strlen(temp_secret)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					pthread_mutex_unlock(&mtx);
@@ -234,11 +251,13 @@ void * thread_func(void * arg) {
 					// Send flag saying that AuthServer is ready to receive group
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// Receive group name
 					if (recvfrom(sfd_ls, g_name, sizeof(g_name), 0, (struct sockaddr *) &addr, &len) == -1) {
 						printf("Authentification Server: Error in recvfrom\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// Check if group name exists
@@ -253,6 +272,7 @@ void * thread_func(void * arg) {
 					// Send success flag (reuse ready flag)
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					if (ready_flag == 1) {
@@ -266,11 +286,13 @@ void * thread_func(void * arg) {
 					// Send flag saying that AuthServer is ready to receive group
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// Receive group name
 					if (recvfrom(sfd_ls, g_name, sizeof(g_name), 0, (struct sockaddr *) &addr, &len) == -1) {
 						printf("Authentification Server: Error in recvfrom\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					// Check if group name exists
@@ -280,6 +302,7 @@ void * thread_func(void * arg) {
 					// Send success flag (reuse ready flag)
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
+						printf("The error message is: %s\n", strerror(errno));
 						pthread_exit(NULL);
 					}
 					pthread_mutex_unlock(&mtx);
@@ -303,7 +326,8 @@ void * handle_local_servers(void * arg) {
 
 	// Detach the thread so we can release the memory with pthread_cancel
 	if (pthread_detach(pthread_self()) != 0) {
-			printf("Local Server: Error in 'pthread_detach'\n");
+		printf("Local Server: Error in 'pthread_detach'\n");
+		printf("The error message is: %s\n", strerror(errno));
 	}
 
 	// Length of the client address
@@ -317,6 +341,7 @@ void * handle_local_servers(void * arg) {
 	sfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sfd == -1) {
 		printf("Authentification Server: Error in socket creation\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
@@ -329,6 +354,7 @@ void * handle_local_servers(void * arg) {
 	// Bind address
 	if (bind(sfd, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) == -1) {
 		printf("Authentification Server: Error in binding\n");
+		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
 
@@ -338,6 +364,7 @@ void * handle_local_servers(void * arg) {
 	for (;;) {
 		if (recvfrom(sfd, buf, BUF_SIZE, 0, (struct sockaddr *) &sv_addr_local, &len) == -1) {
 			printf("Authentification Server: Error in recvfrom\n");
+			printf("The error message is: %s\n", strerror(errno));
 			pthread_exit(NULL);
 		}
 		else {
@@ -345,12 +372,14 @@ void * handle_local_servers(void * arg) {
 			if (strcmp(buf, "Connect") == 0) {
 				if (inet_ntop(AF_INET, &sv_addr_local.sin_addr, localSrvStr, INET_ADDRSTRLEN) == NULL) {
 					printf("Authentification Server: Couldn't convert client address to string\n");
+					printf("The error message is: %s\n", strerror(errno));
 					pthread_exit(NULL);
 				}
 				printf("Authentification server received connection request from (%s, %u)\n", localSrvStr, ntohs(sv_addr_local.sin_port));
 				initial_port++;
 				if (sendto(sfd, &initial_port, sizeof(int), 0, (struct sockaddr *) &sv_addr_local, sizeof(struct sockaddr_in)) != sizeof(int)) {
 					printf("Authentification Server: Error in sendto\n");
+					printf("The error message is: %s\n", strerror(errno));
 					pthread_exit(NULL);
 				}
 				pthread_t t_id;
@@ -394,6 +423,7 @@ int main(int argc, char *argv[]) {
 		next = current->next;
 		if (close(current->file_desc) == -1) {
 			printf("Authentification Server: Error in closing socket\n");
+			printf("The error message is: %s\n", strerror(errno));
 		}
 		free(current);
 		current = next;
@@ -403,6 +433,7 @@ int main(int argc, char *argv[]) {
 
 	if (close(sfd) == -1) {
 		printf("Authentification Server: Error in closing socket\n");
+		printf("The error message is: %s\n", strerror(errno));
 	}
 
 	// Free table

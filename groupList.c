@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include "appList.h"
 #include "groupList.h"
 
@@ -19,11 +20,13 @@ bool CreateGroupAuthServer(char * g_name, char * secret) {
 
 	if (sendto(sfd_auth, func_str, sizeof(func_str), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(func_str)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -34,11 +37,13 @@ bool CreateGroupAuthServer(char * g_name, char * secret) {
 
 	if (sendto(sfd_auth, g_name, strlen(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != strlen(g_name)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -49,11 +54,13 @@ bool CreateGroupAuthServer(char * g_name, char * secret) {
 
 	if (sendto(sfd_auth, secret, sizeof(secret), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(secret)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -152,26 +159,31 @@ bool FindGroupAuthServer(char * g_name) {
 
 	if (sendto(sfd_auth, func_str, sizeof(func_str), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(func_str)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (ready_flag == -1) {
 		printf("Server: Server not ready\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (sendto(sfd_auth, g_name, strlen(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != strlen(g_name)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -203,11 +215,13 @@ char * GetSecretFromAuthServer(char * g_name) {
 
 	if (sendto(sfd_auth, func_str, sizeof(func_str), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(func_str)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -218,11 +232,13 @@ char * GetSecretFromAuthServer(char * g_name) {
 
 	if (sendto(sfd_auth, g_name, strlen(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != strlen(g_name)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -233,6 +249,7 @@ char * GetSecretFromAuthServer(char * g_name) {
 
 	if (sendto(sfd_auth, &ready_flag, sizeof(ready_flag), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(ready_flag)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -240,6 +257,7 @@ char * GetSecretFromAuthServer(char * g_name) {
 
 	if (recvfrom(sfd_auth, secret, sizeof(secret), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -395,11 +413,13 @@ int DeleteGroupAuthServer(char * g_name) {
 
 	if (sendto(sfd_auth, func_str, sizeof(func_str), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(func_str)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -410,11 +430,13 @@ int DeleteGroupAuthServer(char * g_name) {
 
 	if (sendto(sfd_auth, g_name, strlen(g_name), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != strlen(g_name)) {
 		printf("Server: Fatal error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
 	if (recvfrom(sfd_auth, &ready_flag, sizeof(ready_flag), 0, NULL, NULL) == -1) {
 		printf("Server: Fatal error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
@@ -441,6 +463,7 @@ void SendDeleteGroupFlags(struct Group ** head_ref, char * name) {
 				if (curr->isClosed == false) {
 					if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
 						printf("Local Server: Error in sending flag\n");
+						printf("The error message is: %s\n", strerror(errno));
 					}
 				}
 				curr = curr->next;
@@ -511,6 +534,7 @@ void SendDeleteAllGroupsFlags(struct Group ** head_ref) {
 			if (curr->isClosed == false) {
 				if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
 					printf("Local Server: Error in sending flag\n");
+					printf("The error message is: %s\n", strerror(errno));
 				}
 			}
 			curr = curr->next;
