@@ -512,6 +512,8 @@ void * app_thread(void * arg) {
 	pthread_exit(NULL);
 }
 
+int exit_flag = 0;
+
 void * handle_apps(void * arg) {
 
 	// Detach thread because we will cancel it when exiting the serverr
@@ -558,8 +560,10 @@ void * handle_apps(void * arg) {
 		temp_info.file_descriptor = accept(sfd_main, (struct sockaddr *) &app_addr, &len);
 		temp_info.cl_pid = atol(app_addr.sun_path + strlen("/tmp/app_socket_"));
 		if (temp_info.file_descriptor == -1) {
-			printf("Local Server: Error in accepting\n");
-			printf("The error message is: %s\n", strerror(errno));
+			if (exit_flag != 1) {
+				printf("Local Server: Error in accepting\n");
+				printf("The error message is: %s\n", strerror(errno));				
+			}
 			pthread_exit(NULL);
 		}
 		pthread_t t_id;
@@ -569,53 +573,69 @@ void * handle_apps(void * arg) {
 	pthread_exit(NULL);
 }
 
-int main(int argc, char *argv[]) {
+pthread_t tid_cmd;
+pthread_t tid_close;
 
-	signal(SIGPIPE, SIG_IGN);
+int port_number = -1;
 
-	// Create socket
-	sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sfd_auth == -1) {
+void * thread_close(void * arg) {
+
+	// Detach the thread so we can release the memory with pthread_cancel
+	if (pthread_detach(pthread_self()) != 0) {
+		printf("Local Server: Error in 'pthread_detach'\n");
+		printf("The error message is: %s\n", strerror(errno));
+	}
+
+	int sfd_auth_cancel = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sfd_auth_cancel == -1) {
 		printf("Local Server: Error in socket creation\n");
 		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
 
-	// Address of the authentification server
-	sv_addr_auth.sin_family = AF_INET;
-	sv_addr_auth.sin_port = htons(initial_port);
+	struct sockaddr_in sv_addr_auth_cancel;
 
-	// Sending a string to the Auth Server to connect
-	char str_connect[BUF_SIZE] = "Connect";
-	if (sendto(sfd_auth, str_connect, sizeof(str_connect), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(str_connect)) {
+	// Address of the authentification server
+	sv_addr_auth_cancel.sin_family = AF_INET;
+	sv_addr_auth_cancel.sin_port = htons(port_number+1);
+
+	char str_connect2[BUF_SIZE] = "Connect_2";
+	if (sendto(sfd_auth_cancel, str_connect2, sizeof(str_connect2), 0, (struct sockaddr *) &sv_addr_auth_cancel, sizeof(struct sockaddr_in)) != sizeof(str_connect2)) {
 		printf("Local Server: Error in sendto\n");
 		printf("The error message is: %s\n", strerror(errno));
 		exit(-1);
 	}
-	int port_number = -1;
-	// Receive the new port number
-	if (recvfrom(sfd_auth, &port_number, sizeof(port_number), 0, NULL, NULL) == -1) {
-		printf("Local Server: Error in recvfrom\n");
+
+	while(1) {
+		int close_flag = -1;
+		if (recvfrom(sfd_auth_cancel, &close_flag, sizeof(close_flag), 0, NULL, NULL) == -1) {
+			printf("Server: Fatal error in recvfrom\n");
+			printf("The error message is: %s\n", strerror(errno));
+			exit(-1);
+		}
+		if (close_flag == -10) {
+			exit_flag = 1;
+			printf("Authentification server is closing\n");
+			pthread_cancel(tid_cmd);
+			break;
+		}
+	}
+
+	pthread_exit(NULL);
+}
+
+void * thread_cmd(void * arg) {
+
+	// Detach thread because we will cancel it when exiting the serverr
+	if (pthread_detach(pthread_self()) != 0) {
+		printf("Local Server: Error in 'pthread_detach'\n");
 		printf("The error message is: %s\n", strerror(errno));
-		exit(-1);
+		pthread_exit(NULL);
 	}
-	printf("Port Number: %d\n", port_number);
-	sv_addr_auth.sin_port = htons(port_number);
 
-	// Creation of thread that will execute the commands
-	pthread_t t_id_apps;
-	pthread_create(&t_id_apps, NULL, handle_apps, NULL);
+	// Create thread that will close open connections
+	pthread_create(&tid_close, NULL, thread_close, NULL);
 
-	// We only try to recvfrom / sendto for one second
-	struct timeval tv;
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
-	if (setsockopt(sfd_auth, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
-	    printf("Local Server: Error in setting socket options\n");
-	    printf("The error message is: %s\n", strerror(errno));
-	    exit(-1);
-	}
-	
 	char str[BUF_SIZE] = {0};
 	char g_name[BUF_SIZE] = {0};
 	size_t len;
@@ -671,6 +691,8 @@ int main(int argc, char *argv[]) {
 			pthread_mutex_unlock(&mtx);
 		}
 		else if (strcmp(str, "Quit\n") == 0) {
+			exit_flag = 1;
+			pthread_cancel(tid_close);
 			break;
 		}
 		else
@@ -678,6 +700,60 @@ int main(int argc, char *argv[]) {
 		memset(str, 0, sizeof(str));
 		memset(g_name, 0, sizeof(g_name));
 	}
+
+	pthread_exit(NULL);
+}
+
+int main(int argc, char *argv[]) {
+
+	signal(SIGPIPE, SIG_IGN);
+
+	// Create socket
+	sfd_auth = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sfd_auth == -1) {
+		printf("Local Server: Error in socket creation\n");
+		printf("The error message is: %s\n", strerror(errno));
+		exit(-1);
+	}
+
+	// Address of the authentification server
+	sv_addr_auth.sin_family = AF_INET;
+	sv_addr_auth.sin_port = htons(initial_port);
+
+	// Sending a string to the Auth Server to connect
+	char str_connect[BUF_SIZE] = "Connect";
+	if (sendto(sfd_auth, str_connect, sizeof(str_connect), 0, (struct sockaddr *) &sv_addr_auth, sizeof(struct sockaddr_in)) != sizeof(str_connect)) {
+		printf("Local Server: Error in sendto\n");
+		printf("The error message is: %s\n", strerror(errno));
+		exit(-1);
+	}
+	// Receive the new port number
+	if (recvfrom(sfd_auth, &port_number, sizeof(port_number), 0, NULL, NULL) == -1) {
+		printf("Local Server: Error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
+		exit(-1);
+	}
+	printf("Port Number: %d\n", port_number);
+	sv_addr_auth.sin_port = htons(port_number);
+
+	// Creation of thread that will execute the commands
+	pthread_t t_id_apps;
+	pthread_create(&t_id_apps, NULL, handle_apps, NULL);
+
+	// We only try to recvfrom / sendto for one second
+	struct timeval tv;
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+	if (setsockopt(sfd_auth, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+	    printf("Local Server: Error in setting socket options\n");
+	    printf("The error message is: %s\n", strerror(errno));
+	    exit(-1);
+	}
+	
+	// Create thread that will handle the requests from the keyboard
+	pthread_create(&tid_cmd, NULL, thread_cmd, NULL);
+
+	while(exit_flag != 1);
 
 	// Cancel thread that is receiving connections from all the apps
 	pthread_cancel(t_id_apps);

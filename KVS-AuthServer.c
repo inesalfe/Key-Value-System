@@ -94,6 +94,73 @@ void RemoveServerFromList(int fd) {
 	return;
 }
 
+int exit_flag = 0;
+
+void * lserver_close(void * arg) {
+
+	// Detach the thread so we can release the memory with pthread_cancel
+	if (pthread_detach(pthread_self()) != 0) {
+		printf("Local Server: Error in 'pthread_detach'\n");
+		printf("The error message is: %s\n", strerror(errno));
+	}
+
+	// Second adress of the local server
+	struct sockaddr_in addr_lserver_cancel;
+	// Length of the client address
+	socklen_t len = sizeof(struct sockaddr_in);
+	// Second addresses of the auth server
+	struct sockaddr_in sv_addr_cancel;
+	// Socket Creation
+	int sfd_cancel = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sfd_cancel == -1) {
+		printf("Local Server: Error in socket creation\n");
+		printf("The error message is: %s\n", strerror(errno));
+		pthread_exit(NULL);
+	}
+
+	// Clean auth server address
+	initial_port++;
+	memset(&sv_addr_cancel, 0, sizeof(sv_addr_cancel));
+	sv_addr_cancel.sin_family = AF_INET;
+	sv_addr_cancel.sin_addr.s_addr = htonl(INADDR_ANY);
+	sv_addr_cancel.sin_port = htons(initial_port);
+
+	// Bind address
+	if (bind(sfd_cancel, (struct sockaddr *) &sv_addr_cancel, sizeof(struct sockaddr_in)) == -1) {
+		printf("Authentification Server: Error in binding\n");
+		printf("The error message is: %s\n", strerror(errno));
+		pthread_exit(NULL);
+	}
+
+	// Receive string to get the local servers address
+	char buf[BUF_SIZE] = {0};
+	if (recvfrom(sfd_cancel, buf, BUF_SIZE, 0, (struct sockaddr *) &addr_lserver_cancel, &len) == -1) {
+		printf("Authentification Server: Error in recvfrom\n");
+		printf("The error message is: %s\n", strerror(errno));
+		pthread_exit(NULL);
+	}
+
+	if (strcmp(buf, "Connect_2") != 0) {
+		printf("Second connection not successful\n");
+		exit(-1);
+	}
+
+	while(1) {
+		if (exit_flag == 1) {
+			printf("Forcing the local servers to close...\n");
+			int close_flag = -10;
+			if (sendto(sfd_cancel, &close_flag, sizeof(int), 0, (struct sockaddr *) &addr_lserver_cancel, sizeof(struct sockaddr_in)) != sizeof(int)) {
+				printf("Authentification Server: Error in sendto\n");
+				printf("The error message is: %s\n", strerror(errno));
+				pthread_exit(NULL);
+			}
+			break;		
+		}
+	}
+
+	pthread_exit(NULL);
+}
+
 void * lserver_thread(void * arg) {
 
 	struct sockaddr_in addr = *(struct sockaddr_in *)arg;
@@ -104,7 +171,7 @@ void * lserver_thread(void * arg) {
 	// Socket Creation
 	int sfd_ls = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sfd_ls == -1) {
-		printf("Local Server: Error in socket creation\n");
+		printf("Authentification Server: Error in socket creation\n");
 		printf("The error message is: %s\n", strerror(errno));
 		pthread_exit(NULL);
 	}
@@ -134,12 +201,18 @@ void * lserver_thread(void * arg) {
 	char g_name[BUF_SIZE] = {0};
 	char secret[BUF_SIZE] = {0};
 
+	// Create thread that will close open connections
+	pthread_t t_close;
+	pthread_create(&t_close, NULL, lserver_close, NULL);
+
 	printf("New Local Server Connected\n");
 
 	for (;;) {
 		if (recvfrom(sfd_ls, buf, BUF_SIZE, 0, (struct sockaddr *) &addr, &len) == -1) {
-			printf("Authentification Server: Error in recvfrom\n");
-			printf("The error message is: %s\n", strerror(errno));
+			if (exit_flag != 1) {
+				printf("Authentification Server: Error in recvfrom\n");
+				printf("The error message is: %s\n", strerror(errno));				
+			}
 			pthread_exit(NULL);
 		}
 		else {
@@ -308,6 +381,8 @@ void * lserver_thread(void * arg) {
 					pthread_mutex_unlock(&mtx);
 				}
 				else if (strcmp(buf, "CloseConnection") == 0) {
+					if (exit_flag != 1)
+						pthread_cancel(t_close);
 					pthread_mutex_lock(&mtx);
 					RemoveServerFromList(sfd_ls);
 					pthread_mutex_unlock(&mtx);
@@ -326,7 +401,7 @@ void * handle_local_servers(void * arg) {
 
 	// Detach the thread so we can release the memory with pthread_cancel
 	if (pthread_detach(pthread_self()) != 0) {
-		printf("Local Server: Error in 'pthread_detach'\n");
+		printf("Authentification Server: Error in 'pthread_detach'\n");
 		printf("The error message is: %s\n", strerror(errno));
 	}
 
@@ -363,8 +438,10 @@ void * handle_local_servers(void * arg) {
 	// Creation of threads that will handle the apps
 	for (;;) {
 		if (recvfrom(sfd, buf, BUF_SIZE, 0, (struct sockaddr *) &sv_addr_local, &len) == -1) {
-			printf("Authentification Server: Error in recvfrom\n");
-			printf("The error message is: %s\n", strerror(errno));
+			if (exit_flag != 1) {
+				printf("Authentification Server: Error in recvfrom\n");
+				printf("The error message is: %s\n", strerror(errno));				
+			}
 			pthread_exit(NULL);
 		}
 		else {
@@ -404,11 +481,14 @@ int main(int argc, char *argv[]) {
 	while (1) {
 		fgets(str, sizeof(str), stdin);
 		if (strcmp(str, "Quit\n") == 0) {
+			exit_flag = 1;
 			break;
 		}
 		else
 			printf("Unknown Command\n");
 	}
+
+	while(connected_servers != NULL);
 
 	// When exiting, cancel the thread that is receiving the incoming connections
 	pthread_cancel(t_id);
