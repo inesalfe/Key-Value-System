@@ -29,13 +29,15 @@ struct sockaddr_un cl_addr_cb;
 struct sockaddr_un sv_addr_cb;
 // Exit flag used to close the sockets properly
 int exit_flag = 0;
+// Thread ID of the thread that handles the incoming requests from the keyboard
+pthread_t tid;
 
 // Example of a callback function
 void callback_function(char * changed_key) {
 	printf("The key %s was changed\n", changed_key);
 }
 
-void * thread_f(void * arg) {
+void * thread_cmd(void * arg) {
 
 	// Detaching the thread so that the resources can be released in case of use of pthread_cancel
 	if (pthread_detach(pthread_self()) != 0) {
@@ -166,7 +168,7 @@ void * thread_f(void * arg) {
 			else
 				printf("Error in 'close_connection'\n");
 			// Setting the exit flag so that the cicle in the main function can be breaked
-			exit_flag = 2;
+			exit_flag = 1;
 			break;
 		}
 		else
@@ -178,17 +180,11 @@ void * thread_f(void * arg) {
 
 int main(int argc, char *argv[]) {
 
-	pthread_t pid;
 	// Create thread to handle the incoming requests from the keyboard
-	pthread_create(&pid, NULL, thread_f, NULL);
+	pthread_create(&tid, NULL, thread_cmd, NULL);
 
 	// Waiting for either the user inputs close_connection, or the the local server deletes a group, ou the local server disconnects
 	while(exit_flag == 0);
-
-	// If the we are exiting due to a received flag in the callback thread, we need to cancel the thread that is still reading inputs from the keyboard
-	if (exit_flag == 1) {
-		pthread_cancel(pid);
-	}
 
 	printf("Exiting the app...\n");
 

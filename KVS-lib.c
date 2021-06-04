@@ -30,6 +30,8 @@ extern struct sockaddr_un cl_addr_cb;
 extern struct sockaddr_un sv_addr_cb;
 // Exit flag used to close the sockets properly
 extern int exit_flag;
+// Thread ID of the thread that handles the incoming requests from the keyboard
+extern pthread_t tid;
 
 // Shortcut to define the structure of the callback function
 typedef void (*callback)(char*);
@@ -148,6 +150,7 @@ void * callback_thread(void * arg) {
 		}
 		else if (flag == -1) {
 			// Closing the connection
+			pthread_cancel(tid);
 			int sucess = close_connection();
 			if (sucess == 1) {
 				printf("App: Closing connection due to deletion of group or closed server\n");

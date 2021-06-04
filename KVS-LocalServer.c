@@ -148,6 +148,7 @@ int get_value (char * group_name, int * app_fd) {
 	numBytes = recv(*app_fd, temp_key, sizeof(temp_key), 0);
 	if (numBytes == -1) {
 		printf("Local Server: Error in reading key\n");
+		printf("The error message is: %s\n", strerror(errno));
 		return -2;
 	}
 	// Get value
