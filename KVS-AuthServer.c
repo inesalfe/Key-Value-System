@@ -94,7 +94,7 @@ void RemoveServerFromList(int fd) {
 	return;
 }
 
-void * thread_func(void * arg) {
+void * lserver_thread(void * arg) {
 
 	struct sockaddr_in addr = *(struct sockaddr_in *)arg;
 	// Length of the client address
@@ -368,7 +368,6 @@ void * handle_local_servers(void * arg) {
 			pthread_exit(NULL);
 		}
 		else {
-			// printf("Received %s in main\n", buf);
 			if (strcmp(buf, "Connect") == 0) {
 				if (inet_ntop(AF_INET, &sv_addr_local.sin_addr, localSrvStr, INET_ADDRSTRLEN) == NULL) {
 					printf("Authentification Server: Couldn't convert client address to string\n");
@@ -383,7 +382,7 @@ void * handle_local_servers(void * arg) {
 					pthread_exit(NULL);
 				}
 				pthread_t t_id;
-				pthread_create(&t_id, NULL, thread_func, &sv_addr_local);
+				pthread_create(&t_id, NULL, lserver_thread, &sv_addr_local);
 			}
 		}
 	}

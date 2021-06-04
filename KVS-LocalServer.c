@@ -248,7 +248,7 @@ int register_callback (char * group_name, int * pid, int * app_fd) {
 	return 1;
 }
 
-void * thread_func(void * arg) {
+void * app_thread(void * arg) {
 
 	// Get app information from arguments
 	struct cl_info * info = arg;
@@ -563,7 +563,7 @@ void * handle_apps(void * arg) {
 			pthread_exit(NULL);
 		}
 		pthread_t t_id;
-		pthread_create(&t_id, NULL, thread_func, &temp_info);
+		pthread_create(&t_id, NULL, app_thread, &temp_info);
 	}
 
 	pthread_exit(NULL);
