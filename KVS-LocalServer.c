@@ -433,6 +433,7 @@ void * app_thread(void * arg) {
 	int sucess_flag;
 	// Variable with a code saying which function the app wants to execute
 	int func_code = -1;
+	int unk_counter = 0;
 	while(1) {
 		numBytes = recv(cfd, &func_code, sizeof(int), 0);
 		if (numBytes < 0)
@@ -490,7 +491,9 @@ void * app_thread(void * arg) {
 				printf("Successful 'register_callback' operation\n");
 			pthread_mutex_unlock(&mtx);
 		}
-		else if (func_code == 4) {
+		else if (func_code == 4 || unk_counter > 20) {
+			if (unk_counter > 20)
+				printf("Too many unknown commands, closing the app\n");
 			pthread_mutex_lock(&mtx);
 			if (CloseApp(&groups, group_id_app, pid))
 				sucess_flag = 1;
@@ -505,8 +508,10 @@ void * app_thread(void * arg) {
 			pthread_mutex_unlock(&mtx);
 			break;
 		}
-		else
-			printf("Unknown command\n");
+		else {
+			unk_counter++;
+			printf("Unknown Command\n");
+		}
 	}
 
 	pthread_exit(NULL);
@@ -639,6 +644,7 @@ void * thread_cmd(void * arg) {
 	char str[BUF_SIZE] = {0};
 	char g_name[BUF_SIZE] = {0};
 	size_t len;
+	int unk_counter = 0;
 	// Getting the commands from the keyboard
 	while (1) {
 		fgets(str, sizeof(str), stdin);
@@ -690,13 +696,17 @@ void * thread_cmd(void * arg) {
 			ShowAppStatus(groups);
 			pthread_mutex_unlock(&mtx);
 		}
-		else if (strcmp(str, "Quit\n") == 0) {
+		else if (strcmp(str, "Quit\n") == 0 || unk_counter > 20) {
+			if (unk_counter > 20)
+				printf("Too many unknown commnads, exiting the server\n");
 			exit_flag = 1;
 			pthread_cancel(tid_close);
 			break;
 		}
-		else
+		else {
+			unk_counter++;
 			printf("Unknown Command\n");
+		}
 		memset(str, 0, sizeof(str));
 		memset(g_name, 0, sizeof(g_name));
 	}

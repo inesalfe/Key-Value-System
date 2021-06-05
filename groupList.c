@@ -107,7 +107,7 @@ char * CreateGroupLocalServer(struct Group ** head_ref, char * name) {
 		return NULL;
 	}
 
-	new_node->table = create_table(SIZE_IN);
+	new_node->table = CreateTable(SIZE_IN);
 	new_node->apps = NULL;
 	new_node->next = NULL;
 
@@ -141,7 +141,7 @@ bool FindKeyValueLocalServer(struct Group * head, char * name, char * key) {
 		// Find group with given name
 		if (strcmp(current->group_name, name) == 0) {
 			// Check if key belong to the group table
-			if (ht_search(current->table, key) != NULL)
+			if (SearchInTable(current->table, key) != NULL)
 				return true;
 			else
 				return false;
@@ -270,7 +270,7 @@ char * GetKeyValueLocalServer(struct Group * head, char * name, char * key) {
 	while (current != NULL)
 	{
 		if (strcmp(current->group_name, name) == 0) {
-			return ht_search(current->table, key);
+			return SearchInTable(current->table, key);
 		}
 		current = current->next;
 	}
@@ -332,7 +332,7 @@ bool AddKeyValueToGroup(struct Group * head, char * name, int pid, char * key, c
 		if (strcmp(current->group_name, name) == 0) {
 			// Check if the app belongs to this group
 			if (FindApp(current->apps, pid)) {
-				ht_insert(current->table, key, value);
+				InsertToTable(current->table, key, value);
 				return true;
 			}
 			else {
@@ -397,7 +397,7 @@ bool DeleteKeyValue(struct Group * head, char * name, char * key) {
 					DeleteFromWatchList(&curr->wlist, key);
 				curr = next;
 			}
-			ht_delete(current->table, key);
+			DeleteFromTable(current->table, key);
 			return true;
 		}
 		current = current->next;
@@ -490,7 +490,7 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 	if (temp != NULL && (strcmp(temp->group_name, name)==0)) {
 		DeleteGroupAuthServer(temp->group_name);
 		DeleteAppList(&temp->apps);
-		free_table(temp->table);
+		FreeTable(temp->table);
 		* head_ref = temp->next;
 		free(temp);
 		return true;
@@ -512,7 +512,7 @@ bool DeleteGroupLocalServer(struct Group ** head_ref, char * name) {
 
 	DeleteGroupAuthServer(temp->group_name);
 	DeleteAppList(&temp->apps);
-	free_table(temp->table);
+	FreeTable(temp->table);
 	free(temp);
 
 	return true;
@@ -604,7 +604,7 @@ int DeleteGroupList(struct Group ** head_ref) {
 		if(DeleteGroupAuthServer(current->group_name) == -1)
 			success_flag = -1;
 		DeleteAppList(&current->apps);
-		free_table(current->table);
+		FreeTable(current->table);
 		free(current);
 		current = next;
 	}
@@ -625,7 +625,7 @@ void ShowAllGroupsInfo(struct Group * head) {
 			printf("Secret: %s\n", secret_recv);
 		}
 		printf("Number of key-value pairs: %d\n", current->table->count);
-		print_table(current->table);
+		PrintTable(current->table);
 		current = current->next;
 		free(secret_recv);
 	}

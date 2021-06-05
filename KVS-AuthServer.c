@@ -239,7 +239,7 @@ void * lserver_thread(void * arg) {
 					}
 					// Check if group name already exists
 					// If exists ready_flag = -1, else do nothing.
-					if (ht_search(table, g_name) != NULL) {
+					if (SearchInTable(table, g_name) != NULL) {
 						ready_flag = -1;
 					}
 					// Send flag saying that AuthServer is ready to receive (or not) secret
@@ -260,7 +260,7 @@ void * lserver_thread(void * arg) {
 						pthread_exit(NULL);
 					}
 					// Store in hash table
-					ht_insert(table, g_name, secret);
+					InsertToTable(table, g_name, secret);
 					// Send success flag (reuse ready flag)
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
@@ -289,7 +289,7 @@ void * lserver_thread(void * arg) {
 					}
 					// Check if group name exists
 					// If it doesn't ready_flag = -1, else do nothing.
-					if (ht_search(table, g_name) == NULL)
+					if (SearchInTable(table, g_name) == NULL)
 						ready_flag = -1;
 					// Send flag saying that AuthServer is ready to receive secret
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
@@ -309,7 +309,7 @@ void * lserver_thread(void * arg) {
 						pthread_exit(NULL);
 					}
 					char temp_secret[BUF_SIZE] = {0};
-					strcpy(temp_secret, ht_search(table, g_name));
+					strcpy(temp_secret, SearchInTable(table, g_name));
 					// Send secret
 					if (sendto(sfd_ls, temp_secret, strlen(temp_secret), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != strlen(temp_secret)) {
 						printf("Authentification Server: Error in sendto\n");
@@ -335,13 +335,13 @@ void * lserver_thread(void * arg) {
 					}
 					// Check if group name exists
 					// If it doesn't ready_flag = -1, else do nothing.
-					if (ht_search(table, g_name) == NULL) {
+					if (SearchInTable(table, g_name) == NULL) {
 						ready_flag = -1;
 						printf("Group name doesn't exist\n");
 					}
 					// Delete group. If group doesn't exist, success flag = -1, else success flag = 1.
 					if (ready_flag == 1)
-						ht_delete(table, g_name);
+						DeleteFromTable(table, g_name);
 					// Send success flag (reuse ready flag)
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
 						printf("Authentification Server: Error in sendto\n");
@@ -370,7 +370,7 @@ void * lserver_thread(void * arg) {
 					}
 					// Check if group name exists
 					// If it doesn't ready_flag = -1, else do nothing.
-					if (ht_search(table, g_name) == NULL)
+					if (SearchInTable(table, g_name) == NULL)
 						ready_flag = -1;
 					// Send success flag (reuse ready flag)
 					if (sendto(sfd_ls, &ready_flag, sizeof(int), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) != sizeof(int)) {
@@ -470,7 +470,7 @@ void * handle_local_servers(void * arg) {
 int main(int argc, char *argv[]) {
 
 	// Create table
-	table = create_table(SIZE_IN);
+	table = CreateTable(SIZE_IN);
 
 	// Create thread that will handle the incoming connections
 	pthread_t t_id;
@@ -516,7 +516,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Free table
-	free_table(table);
+	FreeTable(table);
 
 	printf("Exiting Authentification Server...\n");
 
