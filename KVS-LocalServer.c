@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/time.h>
 #include "groupList.h"
 #include "appList.h"
 
@@ -93,7 +94,7 @@ int put_value (char * group_name, int * app_fd, int * pid) {
 				while (curr != NULL)
 				{
 					next = curr->next;
-					if(IsWatchList(curr->wlist, temp_key)) {
+					if(IsWatchList(curr->wlist, temp_key) && (curr->isClosed == false)) {
 						// Send flag saying that a key was changed
 						int flag = 1;
 						if (send(curr->fd_cb, &flag, sizeof(int), 0) != sizeof(int)) {
@@ -425,7 +426,7 @@ void * app_thread(void * arg) {
 	}
 
 	// Print information for the connected app
-	printf("Connection established with app with PID %ld\n", pid);
+	printf("Connection established with app with PID %d\n", pid);
 
 	// End of establish connection
 
