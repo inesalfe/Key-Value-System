@@ -4,7 +4,7 @@ This is the final project for the "Systems Programming" course. This course is a
 
 The goal of this project was to implement a key-value store composed by several components presented below:
 
-
+<img width="799" alt="Screenshot 2023-03-01 at 16 39 33" src="https://user-images.githubusercontent.com/31959975/222204384-347c830a-dc9a-4b80-908d-c6d5ec972df8.png">
 
 ## Application
 
